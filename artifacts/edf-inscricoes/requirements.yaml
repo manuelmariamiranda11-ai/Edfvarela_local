@@ -1,0 +1,17 @@
+packages:
+  "qrcode.react": "For generating the registration QR code on the home page"
+  "xlsx": "For exporting the admin table to Excel"
+  "react-hook-form": "For robust form state management and validation"
+  "@hookform/resolvers": "For integrating Zod validation with react-hook-form"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes safely without conflicts"
+  "lucide-react": "For beautiful icons across the application"
+
+images:
+  - path: "artifacts/edf-inscricoes/public/images/hero-sports.png"
+    description: "Abstract energetic sports background with track and field running lines, deep professional blue and vibrant green accents, dynamic lighting, clean and modern"
+    aspect_ratio: "16:9"
+
+notes:
+  - Using generated Orval React Query hooks from @workspace/api-client-react
+  - Assuming standard Shadcn-like utility function `cn` can be created

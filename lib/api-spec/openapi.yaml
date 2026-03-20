@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for EDF Inscrições
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: registrations
+    description: Student registrations
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,133 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /registrations:
+    get:
+      operationId: listRegistrations
+      tags: [registrations]
+      summary: List all registrations
+      responses:
+        "200":
+          description: List of registrations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Registration"
+    post:
+      operationId: createRegistration
+      tags: [registrations]
+      summary: Register a student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegistrationInput"
+      responses:
+        "201":
+          description: Registration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Registration"
+        "409":
+          description: Already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /registrations/{id}/scores:
+    put:
+      operationId: updateScores
+      tags: [admin]
+      summary: Update activity scores for a registration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoresInput"
+      responses:
+        "200":
+          description: Scores updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Registration"
+        "404":
+          description: Registration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/me:
+    get:
+      operationId: adminMe
+      tags: [admin]
+      summary: Get current admin session
+      responses:
+        "200":
+          description: Admin authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +164,117 @@ components:
       required:
         - status
 
+    Registration:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        birthYear:
+          type: integer
+        schoolYear:
+          type: string
+        className:
+          type: string
+        activity1:
+          type: number
+          nullable: true
+        activity2:
+          type: number
+          nullable: true
+        activity3:
+          type: number
+          nullable: true
+        activity4:
+          type: number
+          nullable: true
+        activity5:
+          type: number
+          nullable: true
+        average:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - birthYear
+        - schoolYear
+        - className
+        - createdAt
+
+    CreateRegistrationInput:
+      type: object
+      properties:
+        name:
+          type: string
+        birthYear:
+          type: integer
+        schoolYear:
+          type: string
+        className:
+          type: string
+      required:
+        - name
+        - birthYear
+        - schoolYear
+        - className
+
+    ScoresInput:
+      type: object
+      properties:
+        activity1:
+          type: number
+          nullable: true
+        activity2:
+          type: number
+          nullable: true
+        activity3:
+          type: number
+          nullable: true
+        activity4:
+          type: number
+          nullable: true
+        activity5:
+          type: number
+          nullable: true
+
+    LoginInput:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
