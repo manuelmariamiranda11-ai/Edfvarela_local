@@ -3,10 +3,11 @@ import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Trophy, ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCreateRegistration } from "@workspace/api-client-react";
 
 // Form Schema
@@ -70,19 +71,24 @@ export default function Register() {
       {/* Decorative Background */}
       <div className="absolute top-0 left-0 w-full h-96 bg-primary/5 rounded-b-[50%] blur-3xl -z-10" />
 
-      <header className="w-full max-w-3xl mx-auto px-6 py-8">
+      <header className="w-full max-w-3xl mx-auto px-6 py-6 flex justify-between items-center">
         <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
         </Link>
+        <ThemeToggle />
       </header>
 
       <main className="flex-1 w-full max-w-xl mx-auto px-4 pb-20">
         <div className="bg-card rounded-[2rem] shadow-xl border border-border/50 p-6 sm:p-10 relative">
           
           <div className="absolute -top-12 left-1/2 -translate-x-1/2">
-            <div className="bg-primary text-white p-4 rounded-2xl shadow-lg shadow-primary/30">
-              <Trophy className="w-8 h-8" />
+            <div className="bg-white p-2 rounded-2xl shadow-lg shadow-primary/30 border border-border/30">
+              <img
+                src="/images/logo-escola.png"
+                alt="Agrupamento de Escolas de Montijo"
+                className="w-16 h-16 object-contain"
+              />
             </div>
           </div>
 

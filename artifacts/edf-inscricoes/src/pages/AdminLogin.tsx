@@ -2,9 +2,10 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Shield, ArrowLeft, Lock, User } from "lucide-react";
+import { ArrowLeft, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAdminLogin } from "@workspace/api-client-react";
 
 const loginSchema = z.object({
@@ -37,16 +38,21 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
-      <Link href="/" className="absolute top-8 left-8 inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar ao Portal
-      </Link>
+      <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
+        <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar ao Portal
+        </Link>
+        <ThemeToggle />
+      </div>
 
       <div className="w-full max-w-md bg-card p-8 sm:p-10 rounded-[2rem] shadow-2xl border border-border">
         <div className="flex justify-center mb-8">
-          <div className="bg-foreground text-background p-4 rounded-2xl shadow-lg">
-            <Shield className="w-8 h-8" />
-          </div>
+          <img
+            src="/images/logo-escola.png"
+            alt="Agrupamento de Escolas de Montijo"
+            className="w-20 h-20 object-contain"
+          />
         </div>
 
         <div className="text-center mb-10">

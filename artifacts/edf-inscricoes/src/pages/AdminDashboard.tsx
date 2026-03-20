@@ -7,9 +7,9 @@ import {
   Search, 
   ArrowUpDown, 
   Check, 
-  Trophy,
   UserCircle
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { 
   useListRegistrations, 
@@ -104,15 +104,20 @@ export default function AdminDashboard() {
       <header className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Trophy className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl">Gestão EDF</span>
+            <img
+              src="/images/logo-escola.png"
+              alt="Agrupamento de Escolas de Montijo"
+              className="w-10 h-10 object-contain"
+            />
+            <span className="font-display font-bold text-xl hidden sm:block">Gestão EDF</span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm font-medium text-muted-foreground">
               <UserCircle className="w-4 h-4" />
               Admin
             </div>
+            <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="w-4 h-4 mr-2" /> Sair
             </Button>
