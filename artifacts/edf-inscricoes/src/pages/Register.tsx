@@ -19,7 +19,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const schoolYears = ["5.º", "6.º", "7.º", "8.º", "9.º", "10.º", "11.º", "12.º"];
+const schoolYears = ["1.º", "2.º", "3.º", "4.º", "5.º", "6.º", "7.º", "8.º", "9.º"];
 
 export default function Register() {
   const [isSuccess, setIsSuccess] = useState(false);
