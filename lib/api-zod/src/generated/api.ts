@@ -30,6 +30,7 @@ export const ListRegistrationsResponseItem = zod.object({
   activity4: zod.number().nullish(),
   activity5: zod.number().nullish(),
   average: zod.number().nullish(),
+  absent: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListRegistrationsResponse = zod.array(
@@ -44,6 +45,44 @@ export const CreateRegistrationBody = zod.object({
   birthYear: zod.number(),
   schoolYear: zod.string(),
   className: zod.string(),
+});
+
+/**
+ * @summary Delete a registration
+ */
+export const DeleteRegistrationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteRegistrationResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Toggle absent flag for a registration
+ */
+export const ToggleAbsentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ToggleAbsentBody = zod.object({
+  absent: zod.boolean(),
+});
+
+export const ToggleAbsentResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  birthYear: zod.number(),
+  schoolYear: zod.string(),
+  className: zod.string(),
+  activity1: zod.number().nullish(),
+  activity2: zod.number().nullish(),
+  activity3: zod.number().nullish(),
+  activity4: zod.number().nullish(),
+  activity5: zod.number().nullish(),
+  average: zod.number().nullish(),
+  absent: zod.boolean(),
+  createdAt: zod.string(),
 });
 
 /**
@@ -73,6 +112,7 @@ export const UpdateScoresResponse = zod.object({
   activity4: zod.number().nullish(),
   activity5: zod.number().nullish(),
   average: zod.number().nullish(),
+  absent: zod.boolean(),
   createdAt: zod.string(),
 });
 

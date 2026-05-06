@@ -7,7 +7,9 @@ import {
   Search, 
   ArrowUpDown, 
   Check, 
-  UserCircle
+  UserCircle,
+  Trash2,
+  XCircle
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -16,6 +18,8 @@ import {
   useUpdateScores, 
   useAdminLogout,
   useAdminMe,
+  useDeleteRegistration,
+  useToggleAbsent,
   type Registration
 } from "@workspace/api-client-react";
 
@@ -171,13 +175,13 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4">Aluno</th>
                   <th className="px-6 py-4 text-center">Nasc.</th>
                   <th className="px-6 py-4 text-center">Ano/Turma</th>
-                  <th className="px-4 py-4 text-center w-24">Ativ. 1</th>
-                  <th className="px-4 py-4 text-center w-24">Ativ. 2</th>
-                  <th className="px-4 py-4 text-center w-24">Ativ. 3</th>
-                  <th className="px-4 py-4 text-center w-24">Ativ. 4</th>
-                  <th className="px-4 py-4 text-center w-24">Ativ. 5</th>
+                  <th className="px-4 py-4 text-center w-20">Ativ. 1</th>
+                  <th className="px-4 py-4 text-center w-20">Ativ. 2</th>
+                  <th className="px-4 py-4 text-center w-20">Ativ. 3</th>
+                  <th className="px-4 py-4 text-center w-20">Ativ. 4</th>
+                  <th className="px-4 py-4 text-center w-20">Ativ. 5</th>
                   <th className="px-6 py-4 text-center font-bold text-primary">Média</th>
-                  <th className="px-6 py-4 text-right">Ação</th>
+                  <th className="px-4 py-4 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -223,10 +227,14 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
   });
 
   const [isDirty, setIsDirty] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const updateMutation = useUpdateScores();
+  const deleteMutation = useDeleteRegistration();
+  const absentMutation = useToggleAbsent();
+
+  const isAbsent = registration.absent;
 
   const handleScoreChange = (field: keyof typeof scores, value: string) => {
-    // Only allow numbers 0-100 or empty
     if (value !== "" && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) return;
     setScores(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
@@ -240,7 +248,6 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
       activity4: scores.activity4 !== "" ? Number(scores.activity4) : null,
       activity5: scores.activity5 !== "" ? Number(scores.activity5) : null,
     };
-
     try {
       await updateMutation.mutateAsync({ id: registration.id, data: payload });
       setIsDirty(false);
@@ -250,18 +257,46 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
     }
   };
 
-  // Local optimistic average calculation for feedback before save
+  const handleToggleAbsent = async () => {
+    try {
+      await absentMutation.mutateAsync({ id: registration.id, data: { absent: !isAbsent } });
+      onSaved();
+    } catch (e) {
+      console.error("Failed to toggle absent");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    try {
+      await deleteMutation.mutateAsync({ id: registration.id });
+      onSaved();
+    } catch (e) {
+      console.error("Failed to delete");
+    }
+  };
+
   const calcLocalAverage = () => {
     const values = Object.values(scores).map(v => v !== "" ? Number(v) : null).filter(v => v !== null) as number[];
     if (values.length === 0) return "--";
-    const sum = values.reduce((acc, val) => acc + val, 0);
-    return (sum / values.length).toFixed(1);
+    return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
   };
 
   return (
-    <tr className="hover:bg-muted/30 transition-colors group">
+    <tr className={`hover:bg-muted/30 transition-colors group ${isAbsent ? "opacity-60" : ""}`}>
       <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">
-        {registration.name}
+        <div className="flex items-center gap-2">
+          {isAbsent && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-xs font-bold">
+              <XCircle className="w-3 h-3" /> Falta
+            </span>
+          )}
+          {registration.name}
+        </div>
       </td>
       <td className="px-6 py-4 text-center text-muted-foreground">
         {registration.birthYear}
@@ -271,38 +306,69 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
           {registration.schoolYear} {registration.className}
         </span>
       </td>
-      
+
       {/* Score Inputs */}
-      {(['activity1', 'activity2', 'activity3', 'activity4', 'activity5'] as const).map((act, i) => (
+      {(['activity1', 'activity2', 'activity3', 'activity4', 'activity5'] as const).map((act) => (
         <td key={act} className="px-2 py-4">
-          <Input 
+          <Input
             value={scores[act]}
             onChange={(e) => handleScoreChange(act, e.target.value)}
-            className="w-16 h-9 text-center px-1 font-mono mx-auto"
+            disabled={isAbsent}
+            className="w-16 h-9 text-center px-1 font-mono mx-auto disabled:opacity-40"
             placeholder="-"
           />
         </td>
       ))}
 
       <td className="px-6 py-4 text-center font-display font-bold text-lg text-primary">
-        {isDirty ? calcLocalAverage() : (registration.average !== null ? Number(registration.average).toFixed(1) : "--")}
+        {isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" /> :
+          (isDirty ? calcLocalAverage() : (registration.average !== null ? Number(registration.average).toFixed(1) : "--"))}
       </td>
 
-      <td className="px-6 py-4 text-right">
-        {isDirty ? (
-          <Button 
-            size="sm" 
-            onClick={handleSave} 
-            disabled={updateMutation.isPending}
-            className="h-9 w-full sm:w-auto px-4 shadow-md shadow-primary/20"
+      {/* Actions */}
+      <td className="px-4 py-4">
+        <div className="flex items-center justify-center gap-1">
+          {/* Save scores button */}
+          {isDirty && (
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+              className="h-8 w-8 p-0 shadow-md shadow-primary/20"
+              title="Guardar notas"
+            >
+              {updateMutation.isPending ? "..." : <Check className="w-4 h-4" />}
+            </Button>
+          )}
+
+          {/* Absent toggle */}
+          <button
+            onClick={handleToggleAbsent}
+            disabled={absentMutation.isPending}
+            title={isAbsent ? "Remover falta" : "Marcar falta"}
+            className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-colors ${
+              isAbsent
+                ? "bg-destructive/15 border-destructive/30 text-destructive hover:bg-destructive/25"
+                : "border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+            }`}
           >
-            {updateMutation.isPending ? "..." : <Check className="w-4 h-4" />}
-          </Button>
-        ) : (
-          <div className="h-9 w-[52px] inline-flex items-center justify-center opacity-0 group-hover:opacity-50 transition-opacity">
-            <Check className="w-4 h-4 text-green-500" />
-          </div>
-        )}
+            <XCircle className="w-4 h-4" />
+          </button>
+
+          {/* Delete button */}
+          <button
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            title={confirmDelete ? "Clica novamente para confirmar" : "Apagar aluno"}
+            className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-colors ${
+              confirmDelete
+                ? "bg-destructive border-destructive text-white animate-pulse"
+                : "border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+            }`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </td>
     </tr>
   );

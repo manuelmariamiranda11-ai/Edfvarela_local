@@ -18,5 +18,6 @@ export interface Registration {
   activity4?: number | null;
   activity5?: number | null;
   average?: number | null;
+  absent: boolean;
   createdAt: string;
 }

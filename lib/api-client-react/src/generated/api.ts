@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AbsentInput,
   CreateRegistrationInput,
   ErrorResponse,
   HealthStatus,
@@ -271,6 +272,177 @@ export const useCreateRegistration = <
   TContext
 > => {
   return useMutation(getCreateRegistrationMutationOptions(options));
+};
+
+/**
+ * @summary Delete a registration
+ */
+export const getDeleteRegistrationUrl = (id: number) => {
+  return `/api/registrations/${id}`;
+};
+
+export const deleteRegistration = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteRegistrationUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteRegistrationMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRegistration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteRegistration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteRegistration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteRegistration>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteRegistration(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteRegistrationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteRegistration>>
+>;
+
+export type DeleteRegistrationMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a registration
+ */
+export const useDeleteRegistration = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRegistration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRegistration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteRegistrationMutationOptions(options));
+};
+
+/**
+ * @summary Toggle absent flag for a registration
+ */
+export const getToggleAbsentUrl = (id: number) => {
+  return `/api/registrations/${id}/absent`;
+};
+
+export const toggleAbsent = async (
+  id: number,
+  absentInput: AbsentInput,
+  options?: RequestInit,
+): Promise<Registration> => {
+  return customFetch<Registration>(getToggleAbsentUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(absentInput),
+  });
+};
+
+export const getToggleAbsentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof toggleAbsent>>,
+    TError,
+    { id: number; data: BodyType<AbsentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof toggleAbsent>>,
+  TError,
+  { id: number; data: BodyType<AbsentInput> },
+  TContext
+> => {
+  const mutationKey = ["toggleAbsent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof toggleAbsent>>,
+    { id: number; data: BodyType<AbsentInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return toggleAbsent(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ToggleAbsentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof toggleAbsent>>
+>;
+export type ToggleAbsentMutationBody = BodyType<AbsentInput>;
+export type ToggleAbsentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Toggle absent flag for a registration
+ */
+export const useToggleAbsent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof toggleAbsent>>,
+    TError,
+    { id: number; data: BodyType<AbsentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof toggleAbsent>>,
+  TError,
+  { id: number; data: BodyType<AbsentInput> },
+  TContext
+> => {
+  return useMutation(getToggleAbsentMutationOptions(options));
 };
 
 /**

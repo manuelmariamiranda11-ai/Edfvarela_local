@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./absentInput";
 export * from "./createRegistrationInput";
 export * from "./errorResponse";
 export * from "./healthStatus";

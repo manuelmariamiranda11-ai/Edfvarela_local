@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, registrationsTable, insertRegistrationSchema, scoresSchema } from "@workspace/db";
+import { db, registrationsTable, insertRegistrationSchema, scoresSchema, absentSchema } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -13,9 +13,6 @@ router.get("/", async (req, res) => {
 
     const result = rows.map((r) => ({
       ...r,
-      birthYear: r.birthYear,
-      schoolYear: r.schoolYear,
-      className: r.className,
       createdAt: r.createdAt.toISOString(),
       average: computeAverage(r),
     }));
@@ -47,6 +44,73 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     req.log.error(err, "Failed to create registration");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  const id = parseInt(req.params["id"] ?? "", 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(registrationsTable)
+      .where(eq(registrationsTable.id, id));
+
+    if (!existing) {
+      res.status(404).json({ error: "Registration not found" });
+      return;
+    }
+
+    await db.delete(registrationsTable).where(eq(registrationsTable.id, id));
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    req.log.error(err, "Failed to delete registration");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/absent", async (req, res) => {
+  const id = parseInt(req.params["id"] ?? "", 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const parsed = absentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(registrationsTable)
+      .where(eq(registrationsTable.id, id));
+
+    if (!existing) {
+      res.status(404).json({ error: "Registration not found" });
+      return;
+    }
+
+    const [updated] = await db
+      .update(registrationsTable)
+      .set({ absent: parsed.data.absent })
+      .where(eq(registrationsTable.id, id))
+      .returning();
+
+    res.json({
+      ...updated,
+      createdAt: updated.createdAt.toISOString(),
+      average: computeAverage(updated),
+    });
+  } catch (err) {
+    req.log.error(err, "Failed to toggle absent");
     res.status(500).json({ error: "Internal server error" });
   }
 });

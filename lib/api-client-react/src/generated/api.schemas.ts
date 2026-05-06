@@ -21,6 +21,7 @@ export interface Registration {
   activity4?: number | null;
   activity5?: number | null;
   average?: number | null;
+  absent: boolean;
   createdAt: string;
 }
 
@@ -37,6 +38,10 @@ export interface ScoresInput {
   activity3?: number | null;
   activity4?: number | null;
   activity5?: number | null;
+}
+
+export interface AbsentInput {
+  absent: boolean;
 }
 
 export interface LoginInput {
