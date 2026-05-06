@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAdminLogin } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Utilizador obrigatório"),
@@ -16,7 +17,7 @@ const loginSchema = z.object({
 type LoginData = z.infer<typeof loginSchema>;
 
 export default function AdminLogin() {
-  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const loginMutation = useAdminLogin();
 
   const {
@@ -30,7 +31,9 @@ export default function AdminLogin() {
   const onSubmit = async (data: LoginData) => {
     try {
       await loginMutation.mutateAsync({ data });
-      setLocation("/admin");
+      queryClient.clear();
+      const base = import.meta.env.BASE_URL ?? "/";
+      window.location.href = base.endsWith("/") ? `${base}admin` : `${base}/admin`;
     } catch (error) {
       console.error("Login falhou", error);
     }
