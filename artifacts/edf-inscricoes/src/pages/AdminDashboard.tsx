@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "birthYear">("name");
+  const [sortBy, setSortBy] = useState<"name" | "birthYear" | "className">("name");
 
   // Auth Check
   const { data: authData, isLoading: isAuthLoading, isError: isAuthError } = useAdminMe({
@@ -87,15 +87,21 @@ export default function AdminDashboard() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>;
   }
 
+  const cycleSort = () => {
+    setSortBy(prev =>
+      prev === "name" ? "birthYear" : prev === "birthYear" ? "className" : "name"
+    );
+  };
+
+  const sortLabel = sortBy === "name" ? "A-Z" : sortBy === "birthYear" ? "Ano Nasc." : "Turma";
+
   // Filter and Sort
   const filteredAndSortedData = [...registrations]
     .filter(reg => reg.name.toLowerCase().includes(searchTerm.toLowerCase()) || reg.className.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
-      if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
-      } else {
-        return a.birthYear - b.birthYear;
-      }
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "birthYear") return a.birthYear - b.birthYear;
+      return a.className.localeCompare(b.className) || a.name.localeCompare(b.name);
     });
 
   return (
@@ -142,11 +148,11 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button 
               variant="outline" 
-              onClick={() => setSortBy(prev => prev === "name" ? "birthYear" : "name")}
+              onClick={cycleSort}
               className="flex-1 sm:flex-none bg-background"
             >
               <ArrowUpDown className="w-4 h-4 mr-2" />
-              Ordenar: {sortBy === "name" ? "A-Z" : "Ano Nasc."}
+              Ordenar: {sortLabel}
             </Button>
 
             <Button onClick={handleExportExcel} className="flex-1 sm:flex-none bg-secondary hover:bg-secondary/90 text-secondary-foreground">
