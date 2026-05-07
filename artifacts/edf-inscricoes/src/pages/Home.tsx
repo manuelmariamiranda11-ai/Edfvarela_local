@@ -50,14 +50,6 @@ export default function Home() {
 
           {/* Left Column: Copy */}
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary-foreground text-sm font-bold mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-              </span>
-              Inscrições Abertas
-            </div>
-
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-extrabold text-foreground leading-[1.1] mb-6">
               O Teu Desafio <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
