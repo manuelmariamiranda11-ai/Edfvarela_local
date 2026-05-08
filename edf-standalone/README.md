@@ -1,70 +1,89 @@
-# Inscrições EDF — Versão Standalone (Windows)
+# Inscrições EDF — Servidor Local (Windows)
 
 Site de inscrições para o evento de Educação Física do Agrupamento de Escolas de Montijo.
+Funciona diretamente no PC como servidor temporário — sem internet, sem base de dados.
 
-## Como compilar e usar
+---
+
+## Como usar no PC da escola
 
 ### Requisitos
-- [Node.js](https://nodejs.org/) v18 ou superior (recomendado: v20 LTS)
-- npm (incluído com o Node.js)
+- [Node.js](https://nodejs.org/) v18 ou superior (download gratuito)
 
-### Passos no CMD / PowerShell
+### Arranque rápido (recomendado)
+
+1. Abre a pasta `edf-standalone`
+2. Faz duplo clique em **`INICIAR.bat`**
+3. Na primeira vez instala as dependências automaticamente (~1-2 min)
+4. O browser abre sozinho em `http://localhost:3000`
+
+### Partilhar com outros dispositivos (telemóveis, tablets)
+
+Para que os alunos se possam inscrever pelo telemóvel:
+1. O PC e os telemóveis têm de estar na **mesma rede Wi-Fi**
+2. Corre **`VER_IP.bat`** para descobrir o IP do PC (ex: `192.168.1.45`)
+3. No telemóvel, abre o browser e vai a `http://192.168.1.45:3000`
+4. O QR Code na página inicial aponta automaticamente para o endereço correto
+
+### Fechar o servidor
+Fecha a janela preta do `INICIAR.bat` ou prime `CTRL+C`.
+
+---
+
+## Arranque manual (CMD / PowerShell)
 
 ```bat
-npm install
-npm run build
+npm install        (só na primeira vez)
+npm run dev        (inicia o servidor)
 ```
-
-A pasta `dist/` será criada com o site pronto.
-
-### Visualizar o site localmente (após o build)
-
-```bat
-npm run preview
-```
-
-Depois abre o browser em `http://localhost:4173`
-
-> **Nota:** Para navegar entre páginas corretamente, usa sempre `npm run preview`.
-> Não abras o ficheiro `dist/index.html` diretamente — o routing da aplicação requer um servidor HTTP.
 
 ---
 
 ## Funcionalidades
 
-- **Inscrições**: Formulário com nome, ano de nascimento, ano de escolaridade e turma.
-- **QR Code**: Na página inicial, para acesso rápido pelo telemóvel.
-- **Painel Admin**: Ver e gerir todas as inscrições, lançar notas (0-100) para 5 atividades, calcular médias, marcar faltas e apagar registos.
-- **Exportar Excel**: Exporta a tabela com fórmulas AVERAGE para o Excel.
-- **Modo escuro**: Botão de alternância no topo de todas as páginas.
+| Página | Endereço |
+|---|---|
+| Portal de inscrições + QR Code | `http://localhost:3000` |
+| Formulário de inscrição | `http://localhost:3000/register` |
+| Login admin | `http://localhost:3000/admin/login` |
+| Painel admin | `http://localhost:3000/admin` |
+
+### Painel de administração
+- Ver todas as inscrições ordenadas por nome, ano de nascimento ou turma
+- Lançar notas (0-100) para 5 atividades por aluno
+- Média calculada automaticamente
+- Marcar faltas (falta) por aluno
+- Apagar registos
+- Exportar tabela para **Excel** com fórmulas AVERAGE
 
 ## Credenciais de Admin
 
-| Campo        | Valor           |
-|--------------|-----------------|
-| Utilizador   | `edfvarela026`  |
-| Palavra-passe| `varelaedf026`  |
+| Campo | Valor |
+|---|---|
+| Utilizador | `edfvarela026` |
+| Palavra-passe | `varelaedf026` |
 
-Acesso em: `/admin/login`
+---
 
-## Armazenamento
+## Armazenamento de dados
 
-Todos os dados são guardados no **localStorage** do browser — não é necessária qualquer base de dados ou ligação à internet.
+Todos os dados ficam guardados no **localStorage do browser** — não é necessária qualquer base de dados.
 
-Os dados persistem entre sessões no mesmo browser/computador.
+> Os dados persistem enquanto o browser não for limpo. Para guardar os resultados permanentemente, usa a exportação para Excel antes de fechar.
 
-## Estrutura do projeto
+---
+
+## Estrutura da pasta
 
 ```
 edf-standalone/
-├── index.html          ← entrada do Vite
-├── package.json        ← dependências e scripts npm
-├── vite.config.ts      ← configuração do Vite
-├── tsconfig.json       ← TypeScript
+├── INICIAR.bat         ← duplo clique para arrancar (Windows)
+├── VER_IP.bat          ← mostra o IP do PC na rede local
+├── index.html
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
 ├── src/
-│   ├── main.tsx
-│   ├── App.tsx
-│   ├── index.css
 │   ├── pages/          ← Home, Register, AdminLogin, AdminDashboard
 │   ├── components/     ← ThemeToggle + componentes UI
 │   └── lib/            ← storage.ts, theme-context.tsx, utils.ts
