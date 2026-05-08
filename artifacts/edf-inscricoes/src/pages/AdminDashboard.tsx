@@ -1,55 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import * as XLSX from "xlsx";
-import { 
-  LogOut, 
-  Download, 
-  Search, 
-  ArrowUpDown, 
-  Check, 
+import {
+  LogOut,
+  Download,
+  Search,
+  ArrowUpDown,
+  Check,
   UserCircle,
   Trash2,
-  XCircle
+  XCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-import { 
-  useListRegistrations, 
-  useUpdateScores, 
-  useAdminLogout,
-  useAdminMe,
-  useDeleteRegistration,
-  useToggleAbsent,
-  type Registration
-} from "@workspace/api-client-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  type Registration,
+  getRegistrations,
+  deleteRegistration,
+  updateScores,
+  toggleAbsent,
+  isAdminLoggedIn,
+  adminLogout,
+} from "@/lib/storage";
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "birthYear" | "className">("name");
 
-  // Auth Check
-  const { data: authData, isLoading: isAuthLoading, isError: isAuthError } = useAdminMe({
-    query: { retry: false }
-  });
-
-  const { data: registrations = [], isLoading, refetch } = useListRegistrations({
-    query: { enabled: !!authData }
-  });
-  
-  const logoutMutation = useAdminLogout();
-
   useEffect(() => {
-    if (!isAuthLoading && isAuthError) {
+    if (!isAdminLoggedIn()) {
       setLocation("/admin/login");
+      return;
     }
-  }, [isAuthLoading, isAuthError, setLocation]);
+    setRegistrations(getRegistrations());
+  }, [setLocation]);
 
-  const handleLogout = async () => {
-    await logoutMutation.mutateAsync();
+  const refresh = useCallback(() => {
+    setRegistrations(getRegistrations());
+  }, []);
+
+  const handleLogout = () => {
+    adminLogout();
     setLocation("/admin/login");
   };
 
@@ -57,7 +51,7 @@ export default function AdminDashboard() {
     const headers = ["Nome", "Ano de Nascimento", "Ano de Escolaridade", "Turma", "Atividade 1", "Atividade 2", "Atividade 3", "Atividade 4", "Atividade 5", "Média"];
 
     const rows = filteredAndSortedData.map((reg, idx) => {
-      const rowNum = idx + 2; // Excel rows start at 1, row 1 is header
+      const rowNum = idx + 2;
       return [
         reg.name,
         reg.birthYear,
@@ -68,49 +62,47 @@ export default function AdminDashboard() {
         reg.activity3 !== null ? reg.activity3 : "",
         reg.activity4 !== null ? reg.activity4 : "",
         reg.activity5 !== null ? reg.activity5 : "",
-        { t: 'n' as const, f: `IFERROR(AVERAGE(E${rowNum}:I${rowNum}),"")` },
+        { t: "n" as const, f: `IFERROR(AVERAGE(E${rowNum}:I${rowNum}),"")` },
       ];
     });
 
-    const wsData = [headers, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Set column widths
-    ws['!cols'] = [
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws["!cols"] = [
       { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 10 },
       { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       { wch: 10 },
     ];
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Resultados EDF");
     XLSX.writeFile(wb, "resultados_edf.xlsx");
   };
 
-  if (isAuthLoading || !authData) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>;
-  }
-
   const cycleSort = () => {
-    setSortBy(prev =>
+    setSortBy((prev) =>
       prev === "name" ? "birthYear" : prev === "birthYear" ? "className" : "name"
     );
   };
 
   const sortLabel = sortBy === "name" ? "A-Z" : sortBy === "birthYear" ? "Ano Nasc." : "Turma";
 
-  // Filter and Sort
   const filteredAndSortedData = [...registrations]
-    .filter(reg => reg.name.toLowerCase().includes(searchTerm.toLowerCase()) || reg.className.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(
+      (reg) =>
+        reg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.className.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     .sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
       if (sortBy === "birthYear") return a.birthYear - b.birthYear;
       return a.className.localeCompare(b.className) || a.name.localeCompare(b.name);
     });
 
+  if (!isAdminLoggedIn()) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Navbar */}
       <header className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -121,7 +113,7 @@ export default function AdminDashboard() {
             />
             <span className="font-display font-bold text-xl hidden sm:block">Gestão EDF</span>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm font-medium text-muted-foreground">
               <UserCircle className="w-4 h-4" />
@@ -136,29 +128,22 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Controls Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-card p-4 rounded-2xl border border-border shadow-sm">
           <div className="flex-1 w-full relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input 
-              placeholder="Pesquisar aluno ou turma..." 
+            <Input
+              placeholder="Pesquisar aluno ou turma..."
               className="pl-10 h-11"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              onClick={cycleSort}
-              className="flex-1 sm:flex-none bg-background"
-            >
+            <Button variant="outline" onClick={cycleSort} className="flex-1 sm:flex-none bg-background">
               <ArrowUpDown className="w-4 h-4 mr-2" />
               Ordenar: {sortLabel}
             </Button>
-
             <Button onClick={handleExportExcel} className="flex-1 sm:flex-none bg-secondary hover:bg-secondary/90 text-secondary-foreground">
               <Download className="w-4 h-4 mr-2" />
               Exportar Excel
@@ -166,7 +151,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Data Table */}
         <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -185,13 +169,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
-                      A carregar inscrições...
-                    </td>
-                  </tr>
-                ) : filteredAndSortedData.length === 0 ? (
+                {filteredAndSortedData.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground">
                       Nenhuma inscrição encontrada.
@@ -199,11 +177,7 @@ export default function AdminDashboard() {
                   </tr>
                 ) : (
                   filteredAndSortedData.map((reg) => (
-                    <RegistrationRow 
-                      key={reg.id} 
-                      registration={reg} 
-                      onSaved={() => refetch()} 
-                    />
+                    <RegistrationRow key={reg.id} registration={reg} onSaved={refresh} />
                   ))
                 )}
               </tbody>
@@ -215,73 +189,59 @@ export default function AdminDashboard() {
   );
 }
 
-
-// Internal component for row state management
-function RegistrationRow({ registration, onSaved }: { registration: Registration, onSaved: () => void }) {
+function RegistrationRow({ registration, onSaved }: { registration: Registration; onSaved: () => void }) {
   const [scores, setScores] = useState({
-    activity1: registration.activity1 ?? "",
-    activity2: registration.activity2 ?? "",
-    activity3: registration.activity3 ?? "",
-    activity4: registration.activity4 ?? "",
-    activity5: registration.activity5 ?? "",
+    activity1: registration.activity1 ?? ("" as number | ""),
+    activity2: registration.activity2 ?? ("" as number | ""),
+    activity3: registration.activity3 ?? ("" as number | ""),
+    activity4: registration.activity4 ?? ("" as number | ""),
+    activity5: registration.activity5 ?? ("" as number | ""),
   });
-
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const updateMutation = useUpdateScores();
-  const deleteMutation = useDeleteRegistration();
-  const absentMutation = useToggleAbsent();
 
   const isAbsent = registration.absent;
 
   const handleScoreChange = (field: keyof typeof scores, value: string) => {
     if (value !== "" && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) return;
-    setScores(prev => ({ ...prev, [field]: value }));
+    setScores((prev) => ({ ...prev, [field]: value === "" ? "" : value }));
     setIsDirty(true);
   };
 
-  const handleSave = async () => {
-    const payload = {
+  const handleSave = () => {
+    setIsSaving(true);
+    updateScores(registration.id, {
       activity1: scores.activity1 !== "" ? Number(scores.activity1) : null,
       activity2: scores.activity2 !== "" ? Number(scores.activity2) : null,
       activity3: scores.activity3 !== "" ? Number(scores.activity3) : null,
       activity4: scores.activity4 !== "" ? Number(scores.activity4) : null,
       activity5: scores.activity5 !== "" ? Number(scores.activity5) : null,
-    };
-    try {
-      await updateMutation.mutateAsync({ id: registration.id, data: payload });
-      setIsDirty(false);
-      onSaved();
-    } catch (e) {
-      console.error("Failed to save scores");
-    }
+    });
+    setIsDirty(false);
+    setIsSaving(false);
+    onSaved();
   };
 
-  const handleToggleAbsent = async () => {
-    try {
-      await absentMutation.mutateAsync({ id: registration.id, data: { absent: !isAbsent } });
-      onSaved();
-    } catch (e) {
-      console.error("Failed to toggle absent");
-    }
+  const handleToggleAbsent = () => {
+    toggleAbsent(registration.id, !isAbsent);
+    onSaved();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
       setTimeout(() => setConfirmDelete(false), 3000);
       return;
     }
-    try {
-      await deleteMutation.mutateAsync({ id: registration.id });
-      onSaved();
-    } catch (e) {
-      console.error("Failed to delete");
-    }
+    deleteRegistration(registration.id);
+    onSaved();
   };
 
   const calcLocalAverage = () => {
-    const values = Object.values(scores).map(v => v !== "" ? Number(v) : null).filter(v => v !== null) as number[];
+    const values = Object.values(scores)
+      .map((v) => (v !== "" ? Number(v) : null))
+      .filter((v): v is number => v !== null);
     if (values.length === 0) return "--";
     return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
   };
@@ -298,17 +258,14 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
           {registration.name}
         </div>
       </td>
-      <td className="px-6 py-4 text-center text-muted-foreground">
-        {registration.birthYear}
-      </td>
+      <td className="px-6 py-4 text-center text-muted-foreground">{registration.birthYear}</td>
       <td className="px-6 py-4 text-center text-muted-foreground">
         <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs font-bold">
           {registration.schoolYear} {registration.className}
         </span>
       </td>
 
-      {/* Score Inputs */}
-      {(['activity1', 'activity2', 'activity3', 'activity4', 'activity5'] as const).map((act) => (
+      {(["activity1", "activity2", "activity3", "activity4", "activity5"] as const).map((act) => (
         <td key={act} className="px-2 py-4">
           <Input
             value={scores[act]}
@@ -321,30 +278,33 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
       ))}
 
       <td className="px-6 py-4 text-center font-display font-bold text-lg text-primary">
-        {isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" /> :
-          (isDirty ? calcLocalAverage() : (registration.average !== null ? Number(registration.average).toFixed(1) : "--"))}
+        {isAbsent ? (
+          <XCircle className="w-5 h-5 text-destructive mx-auto" />
+        ) : isDirty ? (
+          calcLocalAverage()
+        ) : registration.average !== null ? (
+          Number(registration.average).toFixed(1)
+        ) : (
+          "--"
+        )}
       </td>
 
-      {/* Actions */}
       <td className="px-4 py-4">
         <div className="flex items-center justify-center gap-1">
-          {/* Save scores button */}
           {isDirty && (
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={updateMutation.isPending}
+              disabled={isSaving}
               className="h-8 w-8 p-0 shadow-md shadow-primary/20"
               title="Guardar notas"
             >
-              {updateMutation.isPending ? "..." : <Check className="w-4 h-4" />}
+              <Check className="w-4 h-4" />
             </Button>
           )}
 
-          {/* Absent toggle */}
           <button
             onClick={handleToggleAbsent}
-            disabled={absentMutation.isPending}
             title={isAbsent ? "Remover falta" : "Marcar falta"}
             className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-colors ${
               isAbsent
@@ -355,10 +315,8 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
             <XCircle className="w-4 h-4" />
           </button>
 
-          {/* Delete button */}
           <button
             onClick={handleDelete}
-            disabled={deleteMutation.isPending}
             title={confirmDelete ? "Clica novamente para confirmar" : "Apagar aluno"}
             className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-colors ${
               confirmDelete

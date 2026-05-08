@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,8 +7,7 @@ import { ArrowLeft, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAdminLogin } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { adminLogin } from "@/lib/storage";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Utilizador obrigatório"),
@@ -17,8 +17,8 @@ const loginSchema = z.object({
 type LoginData = z.infer<typeof loginSchema>;
 
 export default function AdminLogin() {
-  const queryClient = useQueryClient();
-  const loginMutation = useAdminLogin();
+  const [isError, setIsError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -28,14 +28,15 @@ export default function AdminLogin() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginData) => {
-    try {
-      await loginMutation.mutateAsync({ data });
-      queryClient.clear();
-      const base = import.meta.env.BASE_URL ?? "/";
-      window.location.href = base.endsWith("/") ? `${base}admin` : `${base}/admin`;
-    } catch (error) {
-      console.error("Login falhou", error);
+  const onSubmit = (data: LoginData) => {
+    setIsSubmitting(true);
+    setIsError(false);
+    const ok = adminLogin(data.username, data.password);
+    if (ok) {
+      window.location.href = (import.meta.env.BASE_URL ?? "/") + "admin";
+    } else {
+      setIsError(true);
+      setIsSubmitting(false);
     }
   };
 
@@ -68,9 +69,10 @@ export default function AdminLogin() {
             <label className="text-sm font-semibold flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" /> Utilizador
             </label>
-            <Input 
+            <Input
               {...register("username")}
               placeholder="Inserir utilizador"
+              autoComplete="username"
               className={errors.username ? "border-destructive" : ""}
             />
           </div>
@@ -79,27 +81,28 @@ export default function AdminLogin() {
             <label className="text-sm font-semibold flex items-center gap-2">
               <Lock className="w-4 h-4 text-muted-foreground" /> Palavra-passe
             </label>
-            <Input 
+            <Input
               type="password"
               {...register("password")}
               placeholder="••••••••"
+              autoComplete="current-password"
               className={errors.password ? "border-destructive" : ""}
             />
           </div>
 
-          {loginMutation.isError && (
+          {isError && (
             <div className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 text-center">
               Credenciais inválidas. Tente novamente.
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            size="lg" 
+          <Button
+            type="submit"
+            size="lg"
             className="w-full mt-4"
-            disabled={loginMutation.isPending}
+            disabled={isSubmitting}
           >
-            {loginMutation.isPending ? "A autenticar..." : "Entrar"}
+            {isSubmitting ? "A autenticar..." : "Entrar"}
           </Button>
         </form>
       </div>
