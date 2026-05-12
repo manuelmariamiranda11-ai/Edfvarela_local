@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users, Dumbbell } from "lucide-react";
+import {
+  ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users, Dumbbell, UserCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { createRegistration } from "@/lib/storage";
+import { computeEscalao, decodeEventConfig, type EventConfig } from "@/lib/event-config";
 
 const formSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
@@ -18,41 +21,62 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
-
 const schoolYears = ["1.º", "2.º", "3.º", "4.º", "5.º", "6.º", "7.º", "8.º", "9.º"];
-const ACTIVITIES = [1, 2, 3, 4, 5];
 
 export default function Register() {
+  const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [selectedActivities, setSelectedActivities] = useState<number[]>([]);
+  const [gender, setGender] = useState<"M" | "F" | null>(null);
+  const [genderError, setGenderError] = useState(false);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [activityError, setActivityError] = useState(false);
+  const [liveEscalao, setLiveEscalao] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ev = params.get("ev");
+    if (ev) {
+      const config = decodeEventConfig(ev);
+      if (config) setEventConfig(config);
+    }
+  }, []);
+
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
 
-  const toggleActivity = (n: number) => {
+  const birthYearValue = watch("birthYear");
+  useEffect(() => {
+    const year = Number(birthYearValue);
+    if (year >= 2000 && year <= new Date().getFullYear()) {
+      setLiveEscalao(computeEscalao(year));
+    } else {
+      setLiveEscalao(null);
+    }
+  }, [birthYearValue]);
+
+  const toggleActivity = (name: string) => {
     setActivityError(false);
     setSelectedActivities((prev) =>
-      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
+      prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
     );
   };
 
   const onSubmit = (data: FormData) => {
-    if (selectedActivities.length === 0) {
-      setActivityError(true);
-      return;
-    }
+    let valid = true;
+    if (!gender) { setGenderError(true); valid = false; }
+    if (selectedActivities.length === 0) { setActivityError(true); valid = false; }
+    if (!valid) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      createRegistration({ ...data, selectedActivities: selectedActivities.sort() });
+      createRegistration({
+        ...data,
+        gender: gender!,
+        selectedActivities,
+      });
       setIsSuccess(true);
     } catch {
       setSubmitError("Ocorreu um erro ao submeter a inscrição. Tenta novamente.");
@@ -64,151 +88,156 @@ export default function Register() {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card p-8 rounded-3xl shadow-xl border border-border text-center animate-in fade-in zoom-in duration-500">
+        <div className="max-w-md w-full bg-card p-8 rounded-3xl shadow-xl border border-border text-center">
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-3xl font-display font-bold mb-4 text-foreground">Inscrição Concluída!</h2>
-          <p className="text-muted-foreground mb-3 text-lg">
-            A tua inscrição foi registada com sucesso.
-          </p>
-          <p className="text-sm text-muted-foreground mb-8">
-            Atividades escolhidas:{" "}
-            <span className="font-semibold text-primary">
-              {selectedActivities.sort().map((n) => `Atividade ${n}`).join(", ")}
-            </span>
-          </p>
-          <Link href="/">
-            <Button size="lg" className="w-full">
-              Voltar ao Início
-            </Button>
-          </Link>
+          <h2 className="text-3xl font-display font-bold mb-3">Inscrição Concluída!</h2>
+          {eventConfig && <p className="text-sm text-primary font-semibold mb-2">{eventConfig.period}</p>}
+          <p className="text-muted-foreground mb-2">Atividades: <span className="font-semibold text-foreground">{selectedActivities.join(", ")}</span></p>
+          <p className="text-muted-foreground mb-8">Género: <span className="font-semibold text-foreground">{gender === "M" ? "Masculino" : "Feminino"}</span></p>
+          <Link href="/"><Button size="lg" className="w-full">Voltar ao Início</Button></Link>
         </div>
       </div>
     );
   }
 
+  const availableActivities = eventConfig?.activities ?? [];
+
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-96 bg-primary/5 rounded-b-[50%] blur-3xl -z-10" />
-
       <header className="w-full max-w-3xl mx-auto px-6 py-6 flex justify-between items-center">
         <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
+          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
         </Link>
         <ThemeToggle />
       </header>
 
       <main className="flex-1 w-full max-w-xl mx-auto px-4 pb-20">
         <div className="bg-card rounded-[2rem] shadow-xl border border-border/50 p-6 sm:p-10 relative">
-
           <div className="absolute -top-12 left-1/2 -translate-x-1/2">
             <div className="bg-white p-2 rounded-2xl shadow-lg shadow-primary/30 border border-border/30">
-              <img
-                src="/images/logo-escola.png"
-                alt="Agrupamento de Escolas de Montijo"
-                className="w-16 h-16 object-contain"
-              />
+              <img src="/images/logo-escola.png" alt="Logo" className="w-16 h-16 object-contain" />
             </div>
           </div>
 
-          <div className="text-center mt-6 mb-10">
-            <h1 className="text-3xl font-display font-bold text-foreground">Ficha de Inscrição</h1>
-            <p className="text-muted-foreground mt-2">Preenche os teus dados para participar no evento.</p>
+          <div className="text-center mt-6 mb-8">
+            <h1 className="text-3xl font-display font-bold">Ficha de Inscrição</h1>
+            {eventConfig ? (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                {eventConfig.period}
+              </div>
+            ) : (
+              <p className="text-muted-foreground mt-2">Preenche os teus dados para participar.</p>
+            )}
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Name */}
             <div className="space-y-2">
               <label className="text-sm font-semibold flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" /> Nome Completo
               </label>
-              <Input
-                placeholder="Ex: João Silva"
-                {...register("name")}
-                className={errors.name ? "border-destructive focus-visible:ring-destructive/10" : ""}
-              />
-              {errors.name && <p className="text-destructive text-sm mt-1">{errors.name.message}</p>}
+              <Input placeholder="Ex: João Silva" {...register("name")}
+                className={errors.name ? "border-destructive" : ""} />
+              {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" /> Ano de Nascimento
-                </label>
-                <Input
-                  type="number"
-                  placeholder="Ex: 2008"
-                  {...register("birthYear")}
-                  className={errors.birthYear ? "border-destructive focus-visible:ring-destructive/10" : ""}
-                />
-                {errors.birthYear && <p className="text-destructive text-sm mt-1">{errors.birthYear.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-primary" /> Ano de Escolaridade
-                </label>
-                <Select
-                  {...register("schoolYear")}
-                  className={errors.schoolYear ? "border-destructive focus-visible:ring-destructive/10" : ""}
-                >
-                  <option value="">Selecione...</option>
-                  {schoolYears.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </Select>
-                {errors.schoolYear && <p className="text-destructive text-sm mt-1">{errors.schoolYear.message}</p>}
-              </div>
-            </div>
-
+            {/* Birth year + escalão */}
             <div className="space-y-2">
               <label className="text-sm font-semibold flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" /> Turma
+                <Calendar className="w-4 h-4 text-primary" /> Ano de Nascimento
               </label>
-              <Input
-                placeholder="Ex: A, B, C..."
-                {...register("className")}
-                className={errors.className ? "border-destructive focus-visible:ring-destructive/10 uppercase" : "uppercase"}
-              />
-              {errors.className && <p className="text-destructive text-sm mt-1">{errors.className.message}</p>}
+              <div className="flex gap-3 items-start">
+                <div className="flex-1">
+                  <Input type="number" placeholder="Ex: 2010" {...register("birthYear")}
+                    className={errors.birthYear ? "border-destructive" : ""} />
+                  {errors.birthYear && <p className="text-destructive text-sm mt-1">{errors.birthYear.message}</p>}
+                </div>
+                {liveEscalao && (
+                  <div className="h-12 flex items-center px-4 rounded-xl bg-secondary/15 text-secondary text-sm font-bold border border-secondary/20 whitespace-nowrap">
+                    {liveEscalao}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Activity selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Dumbbell className="w-4 h-4 text-primary" /> Atividades em que vais participar
-              </label>
-              <p className="text-xs text-muted-foreground">Seleciona as atividades que queres fazer. A média será calculada só com as que escolheres.</p>
-              <div className="grid grid-cols-5 gap-2">
-                {ACTIVITIES.map((n) => {
-                  const selected = selectedActivities.includes(n);
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => toggleActivity(n)}
-                      className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 select-none ${
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-primary"
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{selected ? "✓" : n}</span>
-                      <span className="text-[10px] font-medium opacity-80">Ativ. {n}</span>
-                    </button>
-                  );
-                })}
+            {/* School year + class */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-primary" /> Ano
+                </label>
+                <Select {...register("schoolYear")} className={errors.schoolYear ? "border-destructive" : ""}>
+                  <option value="">Selecione...</option>
+                  {schoolYears.map((y) => <option key={y} value={y}>{y}</option>)}
+                </Select>
+                {errors.schoolYear && <p className="text-destructive text-sm">{errors.schoolYear.message}</p>}
               </div>
-              {activityError && (
-                <p className="text-destructive text-sm">Seleciona pelo menos uma atividade.</p>
-              )}
-              {selectedActivities.length > 0 && (
-                <p className="text-xs text-primary font-medium">
-                  Selecionadas: {selectedActivities.sort().map((n) => `Atividade ${n}`).join(", ")}
-                </p>
-              )}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Turma
+                </label>
+                <Input placeholder="Ex: A" {...register("className")}
+                  className={errors.className ? "border-destructive uppercase" : "uppercase"} />
+                {errors.className && <p className="text-destructive text-sm">{errors.className.message}</p>}
+              </div>
             </div>
+
+            {/* Gender */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <UserCircle2 className="w-4 h-4 text-primary" /> Género
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["M", "F"] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => { setGender(g); setGenderError(false); }}
+                    className={`py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                      gender === g
+                        ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {g === "M" ? "♂ Masculino" : "♀ Feminino"}
+                  </button>
+                ))}
+              </div>
+              {genderError && <p className="text-destructive text-sm">Seleciona o género.</p>}
+            </div>
+
+            {/* Activities */}
+            {availableActivities.length > 0 && (
+              <div className="space-y-3">
+                <label className="text-sm font-semibold flex items-center gap-2">
+                  <Dumbbell className="w-4 h-4 text-primary" /> Atividades em que vais participar
+                </label>
+                <p className="text-xs text-muted-foreground">A média será calculada só com as atividades que escolheres.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableActivities.map((act) => {
+                    const sel = selectedActivities.includes(act);
+                    return (
+                      <button
+                        key={act}
+                        type="button"
+                        onClick={() => toggleActivity(act)}
+                        className={`py-2.5 px-3 rounded-xl border-2 font-semibold text-sm text-left transition-all ${
+                          sel
+                            ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {sel ? "✓ " : ""}{act}
+                      </button>
+                    );
+                  })}
+                </div>
+                {activityError && <p className="text-destructive text-sm">Seleciona pelo menos uma atividade.</p>}
+              </div>
+            )}
 
             {submitError && (
               <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
@@ -216,12 +245,7 @@ export default function Register() {
               </div>
             )}
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full text-lg mt-8"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" size="lg" className="w-full text-lg" disabled={isSubmitting}>
               {isSubmitting ? "A submeter..." : "Confirmar Inscrição"}
             </Button>
           </form>

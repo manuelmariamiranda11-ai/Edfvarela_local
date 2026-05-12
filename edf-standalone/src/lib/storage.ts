@@ -1,15 +1,15 @@
+import { computeEscalao } from "./event-config";
+
 export interface Registration {
   id: number;
   name: string;
   birthYear: number;
+  escalao: string;
   schoolYear: string;
   className: string;
-  selectedActivities: number[];
-  activity1: number | null;
-  activity2: number | null;
-  activity3: number | null;
-  activity4: number | null;
-  activity5: number | null;
+  gender: "M" | "F";
+  selectedActivities: string[];
+  activityScores: Record<string, number | null>;
   absent: boolean;
   createdAt: string;
   average: number | null;
@@ -20,26 +20,50 @@ const SESSION_KEY = "edf_admin_session";
 const ADMIN_USERNAME = "edfvarela026";
 const ADMIN_PASSWORD = "varelaedf026";
 
-type ActivityKey = "activity1" | "activity2" | "activity3" | "activity4" | "activity5";
-const ACT_KEYS: ActivityKey[] = ["activity1", "activity2", "activity3", "activity4", "activity5"];
-
-function computeAverage(reg: Pick<Registration, ActivityKey | "selectedActivities">): number | null {
-  const selected = reg.selectedActivities?.length ? reg.selectedActivities : [1, 2, 3, 4, 5];
-  const scores = selected
-    .map((n) => reg[ACT_KEYS[n - 1]])
+function computeAverage(
+  reg: Pick<Registration, "selectedActivities" | "activityScores">
+): number | null {
+  const scores = reg.selectedActivities
+    .map((name) => reg.activityScores[name] ?? null)
     .filter((v): v is number => v !== null);
   if (scores.length === 0) return null;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
+function migrateReg(r: Record<string, unknown>): Registration {
+  if (r.activityScores) {
+    return {
+      ...(r as unknown as Registration),
+      escalao: (r.escalao as string) ?? computeEscalao(r.birthYear as number),
+      gender: (r.gender as "M" | "F") ?? "M",
+    };
+  }
+  const oldSel: number[] = (r.selectedActivities as number[]) ?? [1, 2, 3, 4, 5];
+  const activityScores: Record<string, number | null> = {};
+  oldSel.forEach((n) => {
+    activityScores[`Atividade ${n}`] = (r[`activity${n}`] as number | null) ?? null;
+  });
+  return {
+    id: r.id as number,
+    name: r.name as string,
+    birthYear: r.birthYear as number,
+    escalao: computeEscalao(r.birthYear as number),
+    schoolYear: r.schoolYear as string,
+    className: r.className as string,
+    gender: (r.gender as "M" | "F") ?? "M",
+    selectedActivities: oldSel.map((n) => `Atividade ${n}`),
+    activityScores,
+    absent: (r.absent as boolean) ?? false,
+    createdAt: r.createdAt as string,
+    average: (r.average as number | null) ?? null,
+  };
+}
+
 export function getRegistrations(): Registration[] {
   try {
     const raw = localStorage.getItem(REGISTRATIONS_KEY);
-    const regs = raw ? (JSON.parse(raw) as Registration[]) : [];
-    return regs.map((r) => ({
-      ...r,
-      selectedActivities: r.selectedActivities ?? [1, 2, 3, 4, 5],
-    }));
+    const regs = raw ? (JSON.parse(raw) as Record<string, unknown>[]) : [];
+    return regs.map(migrateReg);
   } catch {
     return [];
   }
@@ -54,22 +78,23 @@ export function createRegistration(data: {
   birthYear: number;
   schoolYear: string;
   className: string;
-  selectedActivities: number[];
+  gender: "M" | "F";
+  selectedActivities: string[];
 }): Registration {
   const regs = getRegistrations();
   const id = regs.length > 0 ? Math.max(...regs.map((r) => r.id)) + 1 : 1;
+  const activityScores: Record<string, number | null> = {};
+  data.selectedActivities.forEach((name) => { activityScores[name] = null; });
   const reg: Registration = {
     id,
     name: data.name,
     birthYear: data.birthYear,
+    escalao: computeEscalao(data.birthYear),
     schoolYear: data.schoolYear,
     className: data.className,
+    gender: data.gender,
     selectedActivities: data.selectedActivities,
-    activity1: null,
-    activity2: null,
-    activity3: null,
-    activity4: null,
-    activity5: null,
+    activityScores,
     absent: false,
     createdAt: new Date().toISOString(),
     average: null,
@@ -84,18 +109,12 @@ export function deleteRegistration(id: number): void {
 
 export function updateScores(
   id: number,
-  scores: {
-    activity1: number | null;
-    activity2: number | null;
-    activity3: number | null;
-    activity4: number | null;
-    activity5: number | null;
-  }
+  activityScores: Record<string, number | null>
 ): Registration | null {
   const regs = getRegistrations();
   const idx = regs.findIndex((r) => r.id === id);
   if (idx === -1) return null;
-  const updated: Registration = { ...regs[idx], ...scores };
+  const updated: Registration = { ...regs[idx], activityScores };
   updated.average = computeAverage(updated);
   regs[idx] = updated;
   save(regs);
