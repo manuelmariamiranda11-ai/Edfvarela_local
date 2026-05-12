@@ -39,23 +39,32 @@ export default function AdminDashboard() {
   };
 
   const handleExportExcel = () => {
-    const headers = ["Nome", "Ano de Nascimento", "Ano de Escolaridade", "Turma",
-      "Atividade 1", "Atividade 2", "Atividade 3", "Atividade 4", "Atividade 5", "Média"];
+    const headers = [
+      "Nome", "Ano de Nascimento", "Ano de Escolaridade", "Turma",
+      "Atividades", "Ativ. 1", "Ativ. 2", "Ativ. 3", "Ativ. 4", "Ativ. 5", "Média",
+    ];
 
-    const rows = filteredAndSortedData.map((reg, idx) => {
-      const rowNum = idx + 2;
+    const rows = filteredAndSortedData.map((reg) => {
+      const avg = reg.average !== null ? Number(reg.average).toFixed(2) : "";
       return [
-        reg.name, reg.birthYear, reg.schoolYear, reg.className,
-        reg.activity1 ?? "", reg.activity2 ?? "", reg.activity3 ?? "",
-        reg.activity4 ?? "", reg.activity5 ?? "",
-        { t: "n" as const, f: `IFERROR(AVERAGE(E${rowNum}:I${rowNum}),"")` },
+        reg.name,
+        reg.birthYear,
+        reg.schoolYear,
+        reg.className,
+        reg.selectedActivities.map((n) => `Ativ. ${n}`).join(", "),
+        reg.selectedActivities.includes(1) ? (reg.activity1 ?? "") : "N/A",
+        reg.selectedActivities.includes(2) ? (reg.activity2 ?? "") : "N/A",
+        reg.selectedActivities.includes(3) ? (reg.activity3 ?? "") : "N/A",
+        reg.selectedActivities.includes(4) ? (reg.activity4 ?? "") : "N/A",
+        reg.selectedActivities.includes(5) ? (reg.activity5 ?? "") : "N/A",
+        avg,
       ];
     });
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws["!cols"] = [
-      { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 10 },
-      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
+      { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
+      { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Resultados EDF");
@@ -157,6 +166,8 @@ export default function AdminDashboard() {
 }
 
 function RegistrationRow({ registration, onSaved }: { registration: Registration; onSaved: () => void }) {
+  const sel = registration.selectedActivities ?? [1, 2, 3, 4, 5];
+
   const [scores, setScores] = useState({
     activity1: registration.activity1 ?? ("" as number | ""),
     activity2: registration.activity2 ?? ("" as number | ""),
@@ -167,6 +178,8 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
   const [isDirty, setIsDirty] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isAbsent = registration.absent;
+
+  const actKey = (n: number) => `activity${n}` as keyof typeof scores;
 
   const handleScoreChange = (field: keyof typeof scores, value: string) => {
     if (value !== "" && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) return;
@@ -202,7 +215,8 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
   };
 
   const calcLocalAverage = () => {
-    const values = Object.values(scores)
+    const values = sel
+      .map((n) => scores[actKey(n)])
       .map((v) => (v !== "" ? Number(v) : null))
       .filter((v): v is number => v !== null);
     if (values.length === 0) return "--";
@@ -210,35 +224,68 @@ function RegistrationRow({ registration, onSaved }: { registration: Registration
   };
 
   return (
-    <tr className={`hover:bg-muted/30 transition-colors group ${isAbsent ? "opacity-60" : ""}`}>
+    <tr className={`hover:bg-muted/30 transition-colors ${isAbsent ? "opacity-60" : ""}`}>
       <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">
-        <div className="flex items-center gap-2">
-          {isAbsent && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-xs font-bold">
-              <XCircle className="w-3 h-3" /> Falta
-            </span>
-          )}
-          {registration.name}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            {isAbsent && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-xs font-bold">
+                <XCircle className="w-3 h-3" /> Falta
+              </span>
+            )}
+            {registration.name}
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span key={n} className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                sel.includes(n) ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground/40"
+              }`}>
+                A{n}
+              </span>
+            ))}
+          </div>
         </div>
       </td>
       <td className="px-6 py-4 text-center text-muted-foreground">{registration.birthYear}</td>
-      <td className="px-6 py-4 text-center text-muted-foreground">
+      <td className="px-6 py-4 text-center">
         <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs font-bold">
           {registration.schoolYear} {registration.className}
         </span>
       </td>
-      {(["activity1", "activity2", "activity3", "activity4", "activity5"] as const).map((act) => (
-        <td key={act} className="px-2 py-4">
-          <Input value={scores[act]} onChange={(e) => handleScoreChange(act, e.target.value)}
-            disabled={isAbsent} className="w-16 h-9 text-center px-1 font-mono mx-auto disabled:opacity-40"
-            placeholder="-" />
-        </td>
-      ))}
+
+      {[1, 2, 3, 4, 5].map((n) => {
+        const isSelected = sel.includes(n);
+        return (
+          <td key={n} className="px-2 py-4">
+            {isSelected ? (
+              <Input
+                value={scores[actKey(n)]}
+                onChange={(e) => handleScoreChange(actKey(n), e.target.value)}
+                disabled={isAbsent}
+                className="w-16 h-9 text-center px-1 font-mono mx-auto disabled:opacity-40"
+                placeholder="-"
+              />
+            ) : (
+              <div className="w-16 h-9 mx-auto flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground/40 text-xs font-semibold">
+                N/A
+              </div>
+            )}
+          </td>
+        );
+      })}
+
       <td className="px-6 py-4 text-center font-display font-bold text-lg text-primary">
-        {isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" /> :
-          isDirty ? calcLocalAverage() :
-          registration.average !== null ? Number(registration.average).toFixed(1) : "--"}
+        {isAbsent ? (
+          <XCircle className="w-5 h-5 text-destructive mx-auto" />
+        ) : isDirty ? (
+          calcLocalAverage()
+        ) : registration.average !== null ? (
+          Number(registration.average).toFixed(1)
+        ) : (
+          "--"
+        )}
       </td>
+
       <td className="px-4 py-4">
         <div className="flex items-center justify-center gap-1">
           {isDirty && (

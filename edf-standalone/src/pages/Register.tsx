@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, User, Calendar, GraduationCap, Users, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -20,21 +20,39 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const schoolYears = ["1.º", "2.º", "3.º", "4.º", "5.º", "6.º", "7.º", "8.º", "9.º"];
+const ACTIVITIES = [1, 2, 3, 4, 5];
 
 export default function Register() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedActivities, setSelectedActivities] = useState<number[]>([]);
+  const [activityError, setActivityError] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
 
+  const toggleActivity = (n: number) => {
+    setActivityError(false);
+    setSelectedActivities((prev) =>
+      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
+    );
+  };
+
   const onSubmit = (data: FormData) => {
+    if (selectedActivities.length === 0) {
+      setActivityError(true);
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      createRegistration(data);
+      createRegistration({ ...data, selectedActivities: selectedActivities.sort() });
       setIsSuccess(true);
     } catch {
       setSubmitError("Ocorreu um erro ao submeter a inscrição. Tenta novamente.");
@@ -51,8 +69,14 @@ export default function Register() {
             <CheckCircle2 className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-display font-bold mb-4 text-foreground">Inscrição Concluída!</h2>
-          <p className="text-muted-foreground mb-8 text-lg">
-            A tua inscrição foi registada com sucesso. Prepara-te para dar o teu melhor no evento!
+          <p className="text-muted-foreground mb-3 text-lg">
+            A tua inscrição foi registada com sucesso.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            Atividades escolhidas:{" "}
+            <span className="font-semibold text-primary">
+              {selectedActivities.sort().map((n) => `Atividade ${n}`).join(", ")}
+            </span>
           </p>
           <Link href="/">
             <Button size="lg" className="w-full">Voltar ao Início</Button>
@@ -76,6 +100,7 @@ export default function Register() {
 
       <main className="flex-1 w-full max-w-xl mx-auto px-4 pb-20">
         <div className="bg-card rounded-[2rem] shadow-xl border border-border/50 p-6 sm:p-10 relative">
+
           <div className="absolute -top-12 left-1/2 -translate-x-1/2">
             <div className="bg-white p-2 rounded-2xl shadow-lg shadow-primary/30 border border-border/30">
               <img src="/images/logo-escola.png" alt="Logo" className="w-16 h-16 object-contain" />
@@ -128,6 +153,44 @@ export default function Register() {
               <Input placeholder="Ex: A, B, C..." {...register("className")}
                 className={errors.className ? "border-destructive uppercase" : "uppercase"} />
               {errors.className && <p className="text-destructive text-sm">{errors.className.message}</p>}
+            </div>
+
+            {/* Activity selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <Dumbbell className="w-4 h-4 text-primary" /> Atividades em que vais participar
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Seleciona as atividades que queres fazer. A média será calculada só com as que escolheres.
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                {ACTIVITIES.map((n) => {
+                  const selected = selectedActivities.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => toggleActivity(n)}
+                      className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 font-semibold text-sm transition-all duration-200 select-none ${
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                          : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-primary"
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{selected ? "✓" : n}</span>
+                      <span className="text-[10px] font-medium opacity-80">Ativ. {n}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {activityError && (
+                <p className="text-destructive text-sm">Seleciona pelo menos uma atividade.</p>
+              )}
+              {selectedActivities.length > 0 && (
+                <p className="text-xs text-primary font-medium">
+                  Selecionadas: {selectedActivities.sort().map((n) => `Atividade ${n}`).join(", ")}
+                </p>
+              )}
             </div>
 
             {submitError && (
