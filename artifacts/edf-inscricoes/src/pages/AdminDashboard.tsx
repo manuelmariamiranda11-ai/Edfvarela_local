@@ -289,7 +289,9 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
         const isSelected = registration.selectedActivities.includes(act);
         return (
           <td key={act} className="px-2 py-3">
-            {isSelected ? (
+            {registration.arbitro ? (
+              <div className="w-16 h-9 mx-auto flex items-center justify-center rounded-xl bg-orange-50 text-orange-400 text-xs font-semibold border border-orange-200">—</div>
+            ) : isSelected ? (
               <Input value={scores[act]} onChange={(e) => handleScoreChange(act, e.target.value)}
                 disabled={isAbsent} className="w-16 h-9 text-center px-1 font-mono mx-auto disabled:opacity-40" placeholder="-" />
             ) : (
@@ -299,7 +301,9 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
         );
       })}
       <td className="px-4 py-3 text-center font-display font-bold text-lg text-primary">
-        {isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" />
+        {registration.arbitro ? (
+          <span className="text-sm font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg border border-orange-200">Árbitro</span>
+        ) : isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" />
           : isDirty ? calcLocalAverage()
           : registration.average !== null ? Number(registration.average).toFixed(1) : "--"}
       </td>
