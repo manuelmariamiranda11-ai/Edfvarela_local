@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isAdminLoggedIn, getCurrentTeacher } from "@/lib/storage";
 import {
-  PERIODS, PRESET_ACTIVITIES, encodeEventConfig, type EventConfig,
+  PERIODS, PRESET_ACTIVITY_GROUPS, encodeEventConfig, type EventConfig,
 } from "@/lib/event-config";
 
 export default function AdminSetup() {
@@ -90,22 +90,26 @@ export default function AdminSetup() {
 
           <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
             <h2 className="font-display font-bold text-lg">2. Escolher Atividades</h2>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pré-definidas</p>
-              <div className="flex flex-wrap gap-2">
-                {PRESET_ACTIVITIES.map((act) => {
-                  const selected = activities.includes(act);
-                  return (
-                    <button key={act} onClick={() => selected ? removeActivity(act) : addActivity(act)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${
-                        selected ? "bg-primary text-primary-foreground border-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
-                      }`}>
-                      {selected && "✓ "}{act}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="space-y-4">
+              {PRESET_ACTIVITY_GROUPS.map((grp) => (
+                <div key={grp.group}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{grp.group}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {grp.activities.map((act) => {
+                      const selected = activities.includes(act);
+                      return (
+                        <button key={act} onClick={() => selected ? removeActivity(act) : addActivity(act)}
+                          className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${
+                            selected ? "bg-primary text-primary-foreground border-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+                          }`}>
+                          {selected && "✓ "}{act}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Personalizada</p>

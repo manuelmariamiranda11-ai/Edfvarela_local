@@ -7,20 +7,38 @@ export interface EventConfig {
 
 export const PERIODS = ["1.º Período", "2.º Período", "3.º Período"];
 
-export const PRESET_ACTIVITIES = [
-  "Corta Mato",
-  "Torneio Inter-Turmas",
-  "Atletismo",
-  "Natação",
-  "Futebol",
-  "Basquetebol",
-  "Voleibol",
-  "Badminton",
-  "Ténis de Mesa",
-  "Ginástica",
-  "Andebol",
-  "Rugby",
+export const PRESET_ACTIVITY_GROUPS: { group: string; activities: string[] }[] = [
+  {
+    group: "Atletismo",
+    activities: ["Corta Mato Escolar"],
+  },
+  {
+    group: "Megasprint Escolar",
+    activities: [
+      "Megasprint — Quilómetro",
+      "Megasprint — Sprint 40m",
+      "Megasprint — Lançamento",
+      "Megasprint — Salto em Comprimento",
+    ],
+  },
+  {
+    group: "Desportos Coletivos",
+    activities: [
+      "Torneio Inter-Turmas",
+      "Badminton",
+      "Voleibol",
+      "Basquetebol",
+      "Corfebol",
+      "Jogo do Queimado",
+    ],
+  },
+  {
+    group: "Outros",
+    activities: ["Dia Internacional da Dança"],
+  },
 ];
+
+export const PRESET_ACTIVITIES = PRESET_ACTIVITY_GROUPS.flatMap((g) => g.activities);
 
 export const ESCALOES = ["Benjamins", "Traquinas", "Infantis", "Iniciados", "Juvenis"];
 
