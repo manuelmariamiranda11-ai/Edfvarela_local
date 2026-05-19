@@ -1,5 +1,12 @@
 import { computeEscalao } from "./event-config";
 
+export interface Teacher {
+  id: string;
+  username: string;
+  password: string;
+  displayName: string;
+}
+
 export interface Registration {
   id: number;
   name: string;
@@ -13,12 +20,64 @@ export interface Registration {
   absent: boolean;
   createdAt: string;
   average: number | null;
+  teacherId: string;
+  teacherName: string;
 }
 
+const TEACHERS_KEY = "edf_teachers";
 const REGISTRATIONS_KEY = "edf_registrations";
-const SESSION_KEY = "edf_admin_session";
-const ADMIN_USERNAME = "edfvarela026";
-const ADMIN_PASSWORD = "varelaedf026";
+const SESSION_KEY = "edf_session_teacher";
+
+export function getTeachers(): Teacher[] {
+  try {
+    const raw = localStorage.getItem(TEACHERS_KEY);
+    return raw ? (JSON.parse(raw) as Teacher[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function registerTeacher(data: {
+  username: string;
+  password: string;
+  displayName: string;
+}): Teacher | string {
+  const teachers = getTeachers();
+  if (teachers.find((t) => t.username === data.username)) {
+    return "Nome de utilizador já existe.";
+  }
+  const teacher: Teacher = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    ...data,
+  };
+  localStorage.setItem(TEACHERS_KEY, JSON.stringify([...teachers, teacher]));
+  return teacher;
+}
+
+export function adminLogin(username: string, password: string): boolean {
+  const teacher = getTeachers().find(
+    (t) => t.username === username && t.password === password
+  );
+  if (teacher) {
+    sessionStorage.setItem(SESSION_KEY, teacher.id);
+    return true;
+  }
+  return false;
+}
+
+export function adminLogout(): void {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+export function getCurrentTeacher(): Teacher | null {
+  const id = sessionStorage.getItem(SESSION_KEY);
+  if (!id) return null;
+  return getTeachers().find((t) => t.id === id) ?? null;
+}
+
+export function isAdminLoggedIn(): boolean {
+  return !!getCurrentTeacher();
+}
 
 function computeAverage(
   reg: Pick<Registration, "selectedActivities" | "activityScores">
@@ -36,6 +95,8 @@ function migrateReg(r: Record<string, unknown>): Registration {
       ...(r as unknown as Registration),
       escalao: (r.escalao as string) ?? computeEscalao(r.birthYear as number),
       gender: (r.gender as "M" | "F") ?? "M",
+      teacherId: (r.teacherId as string) ?? "legacy",
+      teacherName: (r.teacherName as string) ?? "—",
     };
   }
   const oldSel: number[] = (r.selectedActivities as number[]) ?? [1, 2, 3, 4, 5];
@@ -56,10 +117,12 @@ function migrateReg(r: Record<string, unknown>): Registration {
     absent: (r.absent as boolean) ?? false,
     createdAt: r.createdAt as string,
     average: (r.average as number | null) ?? null,
+    teacherId: (r.teacherId as string) ?? "legacy",
+    teacherName: (r.teacherName as string) ?? "—",
   };
 }
 
-export function getRegistrations(): Registration[] {
+function getAllRegistrations(): Registration[] {
   try {
     const raw = localStorage.getItem(REGISTRATIONS_KEY);
     const regs = raw ? (JSON.parse(raw) as Record<string, unknown>[]) : [];
@@ -67,6 +130,12 @@ export function getRegistrations(): Registration[] {
   } catch {
     return [];
   }
+}
+
+export function getRegistrations(): Registration[] {
+  const teacher = getCurrentTeacher();
+  if (!teacher) return [];
+  return getAllRegistrations().filter((r) => r.teacherId === teacher.id);
 }
 
 function save(regs: Registration[]): void {
@@ -80,9 +149,11 @@ export function createRegistration(data: {
   className: string;
   gender: "M" | "F";
   selectedActivities: string[];
+  teacherId: string;
+  teacherName: string;
 }): Registration {
-  const regs = getRegistrations();
-  const id = regs.length > 0 ? Math.max(...regs.map((r) => r.id)) + 1 : 1;
+  const all = getAllRegistrations();
+  const id = all.length > 0 ? Math.max(...all.map((r) => r.id)) + 1 : 1;
   const activityScores: Record<string, number | null> = {};
   data.selectedActivities.forEach((name) => { activityScores[name] = null; });
   const reg: Registration = {
@@ -98,50 +169,36 @@ export function createRegistration(data: {
     absent: false,
     createdAt: new Date().toISOString(),
     average: null,
+    teacherId: data.teacherId,
+    teacherName: data.teacherName,
   };
-  save([...regs, reg]);
+  save([...all, reg]);
   return reg;
 }
 
 export function deleteRegistration(id: number): void {
-  save(getRegistrations().filter((r) => r.id !== id));
+  save(getAllRegistrations().filter((r) => r.id !== id));
 }
 
 export function updateScores(
   id: number,
   activityScores: Record<string, number | null>
 ): Registration | null {
-  const regs = getRegistrations();
-  const idx = regs.findIndex((r) => r.id === id);
+  const all = getAllRegistrations();
+  const idx = all.findIndex((r) => r.id === id);
   if (idx === -1) return null;
-  const updated: Registration = { ...regs[idx], activityScores };
+  const updated: Registration = { ...all[idx], activityScores };
   updated.average = computeAverage(updated);
-  regs[idx] = updated;
-  save(regs);
+  all[idx] = updated;
+  save(all);
   return updated;
 }
 
 export function toggleAbsent(id: number, absent: boolean): Registration | null {
-  const regs = getRegistrations();
-  const idx = regs.findIndex((r) => r.id === id);
+  const all = getAllRegistrations();
+  const idx = all.findIndex((r) => r.id === id);
   if (idx === -1) return null;
-  regs[idx] = { ...regs[idx], absent };
-  save(regs);
-  return regs[idx];
-}
-
-export function adminLogin(username: string, password: string): boolean {
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    sessionStorage.setItem(SESSION_KEY, "true");
-    return true;
-  }
-  return false;
-}
-
-export function adminLogout(): void {
-  sessionStorage.removeItem(SESSION_KEY);
-}
-
-export function isAdminLoggedIn(): boolean {
-  return sessionStorage.getItem(SESSION_KEY) === "true";
+  all[idx] = { ...all[idx], absent };
+  save(all);
+  return all[idx];
 }

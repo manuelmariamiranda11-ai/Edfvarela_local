@@ -1,6 +1,8 @@
 export interface EventConfig {
   period: string;
   activities: string[];
+  teacherId?: string;
+  teacherName?: string;
 }
 
 export const PERIODS = ["1.º Período", "2.º Período", "3.º Período"];

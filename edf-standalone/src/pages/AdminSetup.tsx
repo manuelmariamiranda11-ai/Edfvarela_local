@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { isAdminLoggedIn } from "@/lib/storage";
+import { isAdminLoggedIn, getCurrentTeacher } from "@/lib/storage";
 import {
   PERIODS, PRESET_ACTIVITIES, encodeEventConfig, type EventConfig,
 } from "@/lib/event-config";
@@ -23,6 +23,8 @@ export default function AdminSetup() {
     if (!isAdminLoggedIn()) setLocation("/admin/login");
   }, [setLocation]);
 
+  const teacher = getCurrentTeacher();
+
   const addActivity = (name: string) => {
     const trimmed = name.trim();
     if (!trimmed || activities.includes(trimmed)) return;
@@ -37,8 +39,12 @@ export default function AdminSetup() {
   };
 
   const handleGenerate = () => {
-    if (activities.length === 0) return;
-    const config: EventConfig = { period, activities };
+    if (!teacher || activities.length === 0) return;
+    const config: EventConfig = {
+      period, activities,
+      teacherId: teacher.id,
+      teacherName: teacher.displayName,
+    };
     const encoded = encodeEventConfig(config);
     setGeneratedUrl(`${window.location.origin}/register?ev=${encoded}`);
   };
@@ -51,7 +57,7 @@ export default function AdminSetup() {
     });
   };
 
-  if (!isAdminLoggedIn()) return null;
+  if (!teacher) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -66,7 +72,10 @@ export default function AdminSetup() {
               <Settings2 className="w-5 h-5 text-primary" /> Configurar Evento
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground hidden sm:block font-semibold text-foreground">{teacher.displayName}</span>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -82,7 +91,7 @@ export default function AdminSetup() {
           <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
             <h2 className="font-display font-bold text-lg">2. Escolher Atividades</h2>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Atividades pré-definidas</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pré-definidas</p>
               <div className="flex flex-wrap gap-2">
                 {PRESET_ACTIVITIES.map((act) => {
                   const selected = activities.includes(act);
@@ -98,9 +107,8 @@ export default function AdminSetup() {
                 })}
               </div>
             </div>
-
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Atividade personalizada</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Personalizada</p>
               <div className="flex gap-2">
                 <Input placeholder="Nome da atividade..." value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
@@ -111,7 +119,6 @@ export default function AdminSetup() {
                 </Button>
               </div>
             </div>
-
             {activities.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Selecionadas ({activities.length})</p>
@@ -119,9 +126,7 @@ export default function AdminSetup() {
                   {activities.map((act) => (
                     <span key={act} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
                       {act}
-                      <button onClick={() => removeActivity(act)} className="hover:text-destructive ml-1">
-                        <X className="w-3 h-3" />
-                      </button>
+                      <button onClick={() => removeActivity(act)} className="hover:text-destructive ml-1"><X className="w-3 h-3" /></button>
                     </span>
                   ))}
                 </div>
@@ -160,7 +165,8 @@ export default function AdminSetup() {
                 </div>
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground">
-                Atividades visíveis: <span className="font-semibold text-foreground">{activities.join(", ")}</span>
+                Professor: <span className="font-semibold text-foreground">{teacher.displayName}</span><br />
+                Atividades: <span className="font-semibold text-foreground">{activities.join(", ")}</span>
               </div>
             </div>
           ) : (
@@ -168,7 +174,7 @@ export default function AdminSetup() {
               <QrCode className="w-16 h-16 text-border" />
               <div>
                 <p className="font-semibold text-foreground">QR Code aparece aqui</p>
-                <p className="text-sm text-muted-foreground mt-1">Seleciona o período, escolhe as atividades e clica em "Gerar QR Code"</p>
+                <p className="text-sm text-muted-foreground mt-1">Seleciona o período, as atividades<br />e clica em "Gerar QR Code"</p>
               </div>
             </div>
           )}

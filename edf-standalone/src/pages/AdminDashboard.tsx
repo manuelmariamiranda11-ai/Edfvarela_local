@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import * as XLSX from "xlsx";
-import { LogOut, Download, Search, ArrowUpDown, Check, UserCircle, Trash2, XCircle, Settings2 } from "lucide-react";
+import { LogOut, Download, Search, ArrowUpDown, Check, Trash2, XCircle, Settings2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type Registration, getRegistrations, deleteRegistration,
-  updateScores, toggleAbsent, isAdminLoggedIn, adminLogout,
+  updateScores, toggleAbsent, isAdminLoggedIn, adminLogout, getCurrentTeacher,
 } from "@/lib/storage";
 import { ESCALOES } from "@/lib/event-config";
 
@@ -21,13 +21,14 @@ export default function AdminDashboard() {
   const [filterEscalao, setFilterEscalao] = useState("Todos");
   const [filterGender, setFilterGender] = useState("Todos");
 
+  const teacher = getCurrentTeacher();
+
   useEffect(() => {
     if (!isAdminLoggedIn()) { setLocation("/admin/login"); return; }
     setRegistrations(getRegistrations());
   }, [setLocation]);
 
   const refresh = useCallback(() => setRegistrations(getRegistrations()), []);
-
   const handleLogout = () => { adminLogout(); setLocation("/admin/login"); };
 
   const filtered = registrations
@@ -46,22 +47,16 @@ export default function AdminDashboard() {
       return a.className.localeCompare(b.className) || a.name.localeCompare(b.name);
     });
 
-  const allActivities = Array.from(
-    new Set(registrations.flatMap((r) => r.selectedActivities))
-  ).sort();
+  const allActivities = Array.from(new Set(registrations.flatMap((r) => r.selectedActivities))).sort();
 
   const handleExportExcel = () => {
     const headers = ["Nome", "Escalão", "Género", "Ano Nasc.", "Ano/Turma", "Atividades", ...allActivities, "Média"];
     const rows = filtered.map((reg) => [
-      reg.name,
-      reg.escalao,
+      reg.name, reg.escalao,
       reg.gender === "M" ? "Masculino" : "Feminino",
-      reg.birthYear,
-      `${reg.schoolYear} ${reg.className}`,
+      reg.birthYear, `${reg.schoolYear} ${reg.className}`,
       reg.selectedActivities.join(", "),
-      ...allActivities.map((act) =>
-        reg.selectedActivities.includes(act) ? (reg.activityScores[act] ?? "") : "N/A"
-      ),
+      ...allActivities.map((act) => reg.selectedActivities.includes(act) ? (reg.activityScores[act] ?? "") : "N/A"),
       reg.average !== null ? Number(reg.average).toFixed(2) : "",
     ]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -72,17 +67,14 @@ export default function AdminDashboard() {
 
   const sortLabels: Record<SortKey, string> = { name: "A-Z", birthYear: "Nasc.", className: "Turma", escalao: "Escalão" };
   const cycleSorts: SortKey[] = ["name", "escalao", "birthYear", "className"];
-  const cycleSort = () => {
-    const idx = cycleSorts.indexOf(sortBy);
-    setSortBy(cycleSorts[(idx + 1) % cycleSorts.length]);
-  };
+  const cycleSort = () => { const idx = cycleSorts.indexOf(sortBy); setSortBy(cycleSorts[(idx + 1) % cycleSorts.length]); };
 
   const total = registrations.length;
   const males = registrations.filter((r) => r.gender === "M").length;
   const females = registrations.filter((r) => r.gender === "F").length;
   const byEscalao = ESCALOES.map((e) => ({ e, count: registrations.filter((r) => r.escalao === e).length })).filter((x) => x.count > 0);
 
-  if (!isAdminLoggedIn()) return null;
+  if (!teacher) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -90,31 +82,30 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/images/logo-escola.png" alt="Logo" className="w-10 h-10 object-contain" />
-            <span className="font-display font-bold text-xl hidden sm:block">Gestão EDF</span>
+            <div>
+              <p className="font-display font-bold text-base leading-tight">Gestão EDF</p>
+              <p className="text-xs text-muted-foreground leading-tight">{teacher.displayName}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link href="/admin/setup">
               <Button variant="outline" size="sm" className="hidden sm:flex">
                 <Settings2 className="w-4 h-4 mr-2" /> Configurar Evento
               </Button>
             </Link>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm font-medium text-muted-foreground">
-              <UserCircle className="w-4 h-4" /> Admin
-            </div>
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
-              <LogOut className="w-4 h-4 mr-2" /> Sair
+              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-card border border-border rounded-2xl px-5 py-4">
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total</p>
-            <p className="text-3xl font-display font-bold text-foreground">{total}</p>
+            <p className="text-3xl font-display font-bold">{total}</p>
           </div>
           <div className="bg-card border border-border rounded-2xl px-5 py-4">
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Masculino</p>
@@ -130,15 +121,14 @@ export default function AdminDashboard() {
               {byEscalao.length === 0
                 ? <span className="text-muted-foreground text-xs">—</span>
                 : byEscalao.map(({ e, count }) => (
-                    <span key={e} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                      {e.slice(0, 3)}: {count}
-                    </span>
-                  ))}
+                  <span key={e} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                    {e.slice(0, 3)}: {count}
+                  </span>
+                ))}
             </div>
           </div>
         </div>
 
-        {/* Filters */}
         <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
@@ -155,31 +145,26 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
-
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escalão:</span>
             {["Todos", ...ESCALOES].map((e) => (
               <button key={e} onClick={() => setFilterEscalao(e)}
                 className={`text-xs px-3 py-1 rounded-full font-semibold border transition-all ${
-                  filterEscalao === e ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:border-primary/50"
+                  filterEscalao === e ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"
                 }`}>{e}</button>
             ))}
           </div>
-
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Género:</span>
             {[["Todos", "Todos"], ["M", "Masculino"], ["F", "Feminino"]].map(([val, label]) => (
               <button key={val} onClick={() => setFilterGender(val)}
                 className={`text-xs px-3 py-1 rounded-full font-semibold border transition-all ${
-                  filterGender === val ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:border-primary/50"
+                  filterGender === val ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"
                 }`}>{label}</button>
             ))}
           </div>
         </div>
 
-        {/* Table */}
         <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -198,7 +183,9 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6 + allActivities.length} className="px-6 py-12 text-center text-muted-foreground">Nenhuma inscrição encontrada.</td></tr>
+                  <tr><td colSpan={6 + allActivities.length} className="px-6 py-12 text-center text-muted-foreground">
+                    {total === 0 ? "Nenhuma inscrição ainda. Gera o QR Code em \"Configurar Evento\"." : "Nenhuma inscrição encontrada."}
+                  </td></tr>
                 ) : (
                   filtered.map((reg) => (
                     <RegistrationRow key={reg.id} registration={reg} allActivities={allActivities} onSaved={refresh} />
@@ -213,7 +200,9 @@ export default function AdminDashboard() {
   );
 }
 
-function RegistrationRow({ registration, allActivities, onSaved }: { registration: Registration; allActivities: string[]; onSaved: () => void }) {
+function RegistrationRow({ registration, allActivities, onSaved }: {
+  registration: Registration; allActivities: string[]; onSaved: () => void;
+}) {
   const [scores, setScores] = useState<Record<string, number | "">>(() => {
     const s: Record<string, number | ""> = {};
     allActivities.forEach((act) => { s[act] = registration.activityScores[act] ?? ""; });
@@ -263,15 +252,15 @@ function RegistrationRow({ registration, allActivities, onSaved }: { registratio
         </div>
       </td>
       <td className="px-4 py-3 text-center">
-        <span className="inline-flex items-center px-2 py-1 rounded-md bg-secondary/15 text-secondary text-xs font-bold">{registration.escalao}</span>
+        <span className="inline-flex px-2 py-1 rounded-md bg-secondary/15 text-secondary text-xs font-bold">{registration.escalao}</span>
       </td>
       <td className="px-4 py-3 text-center">
-        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${genderColor}`}>
+        <span className={`inline-flex px-2 py-1 rounded-md text-xs font-bold ${genderColor}`}>
           {registration.gender === "M" ? "♂ M" : "♀ F"}
         </span>
       </td>
       <td className="px-4 py-3 text-center">
-        <span className="inline-flex items-center px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs font-bold">
+        <span className="inline-flex px-2 py-1 rounded-md bg-accent text-accent-foreground text-xs font-bold">
           {registration.schoolYear} {registration.className}
         </span>
       </td>
@@ -296,7 +285,7 @@ function RegistrationRow({ registration, allActivities, onSaved }: { registratio
       <td className="px-3 py-3">
         <div className="flex items-center justify-center gap-1">
           {isDirty && <Button size="sm" onClick={handleSave} className="h-8 w-8 p-0" title="Guardar"><Check className="w-4 h-4" /></Button>}
-          <button onClick={handleToggleAbsent} title={isAbsent ? "Remover falta" : "Marcar falta"}
+          <button onClick={handleToggleAbsent}
             className={`h-8 w-8 flex items-center justify-center rounded-lg border transition-colors ${
               isAbsent ? "bg-destructive/15 border-destructive/30 text-destructive" : "border-border text-muted-foreground hover:text-destructive hover:border-destructive/30"
             }`}><XCircle className="w-4 h-4" /></button>
