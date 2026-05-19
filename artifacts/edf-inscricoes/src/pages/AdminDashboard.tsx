@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type Registration, getRegistrations, deleteRegistration,
-  updateScores, toggleAbsent, isAdminLoggedIn, adminLogout, getCurrentTeacher, deleteTeacher,
+  updateScores, toggleAbsent, toggleArbitro, isAdminLoggedIn, adminLogout, getCurrentTeacher, deleteTeacher,
 } from "@/lib/storage";
 import { ESCALOES } from "@/lib/event-config";
 
@@ -196,6 +196,7 @@ export default function AdminDashboard() {
                     <th key={act} className="px-3 py-3 text-center min-w-[90px]">{act}</th>
                   ))}
                   <th className="px-4 py-3 text-center font-bold text-primary">Média</th>
+                  <th className="px-3 py-3 text-center text-orange-500 font-bold">Árbitro</th>
                   <th className="px-3 py-3 text-center">Ações</th>
                 </tr>
               </thead>
@@ -301,6 +302,18 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
         {isAbsent ? <XCircle className="w-5 h-5 text-destructive mx-auto" />
           : isDirty ? calcLocalAverage()
           : registration.average !== null ? Number(registration.average).toFixed(1) : "--"}
+      </td>
+      <td className="px-3 py-3 text-center">
+        <button
+          onClick={() => { toggleArbitro(registration.id, !registration.arbitro); onSaved(); }}
+          title={registration.arbitro ? "Remover árbitro" : "Marcar como árbitro"}
+          className={`h-8 px-3 rounded-lg border text-xs font-bold transition-all ${
+            registration.arbitro
+              ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/30"
+              : "border-border text-muted-foreground hover:border-orange-400 hover:text-orange-500"
+          }`}>
+          {registration.arbitro ? "✓ Árb." : "Árb."}
+        </button>
       </td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-center gap-1">

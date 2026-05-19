@@ -18,6 +18,7 @@ export interface Registration {
   selectedActivities: string[];
   activityScores: Record<string, number | null>;
   absent: boolean;
+  arbitro: boolean;
   createdAt: string;
   average: number | null;
   teacherId: string;
@@ -97,6 +98,7 @@ function migrateReg(r: Record<string, unknown>): Registration {
       ...(r as unknown as Registration),
       escalao: (r.escalao as string) ?? computeEscalao(r.birthYear as number),
       gender: (r.gender as "M" | "F") ?? "M",
+      arbitro: (r.arbitro as boolean) ?? false,
       teacherId: (r.teacherId as string) ?? "legacy",
       teacherName: (r.teacherName as string) ?? "—",
     };
@@ -117,6 +119,7 @@ function migrateReg(r: Record<string, unknown>): Registration {
     selectedActivities: oldSel.map((n) => `Atividade ${n}`),
     activityScores,
     absent: (r.absent as boolean) ?? false,
+    arbitro: (r.arbitro as boolean) ?? false,
     createdAt: r.createdAt as string,
     average: (r.average as number | null) ?? null,
     teacherId: (r.teacherId as string) ?? "legacy",
@@ -169,6 +172,7 @@ export function createRegistration(data: {
     selectedActivities: data.selectedActivities,
     activityScores,
     absent: false,
+    arbitro: false,
     createdAt: new Date().toISOString(),
     average: null,
     teacherId: data.teacherId,
@@ -176,6 +180,15 @@ export function createRegistration(data: {
   };
   save([...all, reg]);
   return reg;
+}
+
+export function toggleArbitro(id: number, arbitro: boolean): Registration | null {
+  const all = getAllRegistrations();
+  const idx = all.findIndex((r) => r.id === id);
+  if (idx === -1) return null;
+  all[idx] = { ...all[idx], arbitro };
+  save(all);
+  return all[idx];
 }
 
 export function deleteRegistration(id: number): void {
