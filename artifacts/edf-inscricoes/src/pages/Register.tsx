@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  ArrowLeft, CheckCircle2, User, Calendar, GraduationCap,
+  CheckCircle2, User, Calendar, GraduationCap,
   Users, Dumbbell, UserCircle2, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -111,8 +111,7 @@ export default function Register() {
           {selectedActivities.length > 0 && (
             <p className="text-sm text-muted-foreground mb-1">Atividades: <span className="font-semibold text-foreground">{selectedActivities.join(", ")}</span></p>
           )}
-          <p className="text-sm text-muted-foreground mb-8">Género: <span className="font-semibold text-foreground">{gender === "M" ? "Masculino" : "Feminino"}</span></p>
-          <Link href="/"><Button size="lg" className="w-full">Voltar ao Início</Button></Link>
+          <p className="text-sm text-muted-foreground mb-4">Género: <span className="font-semibold text-foreground">{gender === "M" ? "Masculino" : "Feminino"}</span></p>
         </div>
       </div>
     );
@@ -121,10 +120,7 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-96 bg-primary/5 rounded-b-[50%] blur-3xl -z-10" />
-      <header className="w-full max-w-3xl mx-auto px-6 py-6 flex justify-between items-center">
-        <Link href="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Link>
+      <header className="w-full max-w-3xl mx-auto px-6 py-6 flex justify-end items-center">
         <ThemeToggle />
       </header>
 
@@ -222,7 +218,10 @@ export default function Register() {
                 {(["M", "F"] as const).map((g) => (
                   <button key={g} type="button" onClick={() => { setGender(g); setGenderError(false); }}
                     className={`py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                      gender === g ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                      gender === g && g === "M"
+                        ? "border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/25"
+                        : gender === g && g === "F"
+                        ? "border-pink-500 bg-pink-500 text-white shadow-lg shadow-pink-500/25"
                         : "border-border bg-background text-muted-foreground hover:border-primary/50"
                     }`}>
                     {g === "M" ? "♂ Masculino" : "♀ Feminino"}

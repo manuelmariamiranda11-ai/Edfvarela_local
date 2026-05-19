@@ -196,6 +196,14 @@ export function updateScores(
   return updated;
 }
 
+export function deleteTeacher(teacherId: string): void {
+  const teachers = getTeachers().filter((t) => t.id !== teacherId);
+  localStorage.setItem(TEACHERS_KEY, JSON.stringify(teachers));
+  if (sessionStorage.getItem(SESSION_KEY) === teacherId) {
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+}
+
 export function toggleAbsent(id: number, absent: boolean): Registration | null {
   const all = getAllRegistrations();
   const idx = all.findIndex((r) => r.id === id);

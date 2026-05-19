@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type Registration, getRegistrations, deleteRegistration,
-  updateScores, toggleAbsent, isAdminLoggedIn, adminLogout, getCurrentTeacher,
+  updateScores, toggleAbsent, isAdminLoggedIn, adminLogout, getCurrentTeacher, deleteTeacher,
 } from "@/lib/storage";
 import { ESCALOES } from "@/lib/event-config";
 
@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const [filterEscalao, setFilterEscalao] = useState("Todos");
   const [filterGender, setFilterGender] = useState("Todos");
 
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const teacher = getCurrentTeacher();
 
   useEffect(() => {
@@ -30,6 +31,10 @@ export default function AdminDashboard() {
 
   const refresh = useCallback(() => setRegistrations(getRegistrations()), []);
   const handleLogout = () => { adminLogout(); setLocation("/admin/login"); };
+  const handleDeleteAccount = () => {
+    if (!confirmDeleteAccount) { setConfirmDeleteAccount(true); setTimeout(() => setConfirmDeleteAccount(false), 4000); return; }
+    if (teacher) { deleteTeacher(teacher.id); setLocation("/admin/login"); }
+  };
 
   const filtered = registrations
     .filter((r) => {
@@ -94,6 +99,15 @@ export default function AdminDashboard() {
               </Button>
             </Link>
             <ThemeToggle />
+            <button onClick={handleDeleteAccount}
+              className={`h-9 px-3 flex items-center gap-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                confirmDeleteAccount
+                  ? "bg-destructive border-destructive text-white animate-pulse"
+                  : "border-border text-muted-foreground hover:text-destructive hover:border-destructive/40"
+              }`}>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{confirmDeleteAccount ? "Tens a certeza?" : "Apagar conta"}</span>
+            </button>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Sair</span>
             </Button>
