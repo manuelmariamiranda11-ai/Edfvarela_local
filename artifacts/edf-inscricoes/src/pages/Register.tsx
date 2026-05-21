@@ -50,9 +50,21 @@ export default function Register() {
     }
   }, []);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
+
+  const handleRegisterAnother = () => {
+    setIsSuccess(false);
+    setGender(null);
+    setSelectedActivities([]);
+    setLiveEscalao(null);
+    setGenderError(false);
+    setActivityError(false);
+    setTeacherError(false);
+    setSubmitError(null);
+    reset();
+  };
 
   const birthYearValue = watch("birthYear");
   useEffect(() => {
@@ -103,7 +115,7 @@ export default function Register() {
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-3xl font-display font-bold mb-3">Inscrição Concluída!</h2>
+          <h2 className="text-3xl font-display font-bold mb-3">Inscrição Guardada!</h2>
           {eventConfig && <p className="text-sm text-primary font-semibold mb-1">{eventConfig.period}</p>}
           <p className="text-sm text-muted-foreground mb-1">
             Professor: <span className="font-semibold text-foreground">{eventConfig?.teacherName ?? teachers.find(t => t.id === selectedTeacherId)?.displayName ?? "—"}</span>
@@ -111,7 +123,19 @@ export default function Register() {
           {selectedActivities.length > 0 && (
             <p className="text-sm text-muted-foreground mb-1">Atividades: <span className="font-semibold text-foreground">{selectedActivities.join(", ")}</span></p>
           )}
-          <p className="text-sm text-muted-foreground mb-4">Género: <span className="font-semibold text-foreground">{gender === "M" ? "Masculino" : "Feminino"}</span></p>
+          <p className="text-sm text-muted-foreground mb-8">Género: <span className="font-semibold text-foreground">{gender === "M" ? "Masculino" : "Feminino"}</span></p>
+
+          <div className="border-t border-border pt-6">
+            <p className="font-semibold text-foreground mb-4">Registar outro aluno?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button size="lg" onClick={handleRegisterAnother}>
+                Sim
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => window.close()}>
+                Não
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );

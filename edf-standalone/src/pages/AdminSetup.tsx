@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { QRCodeSVG } from "qrcode.react";
-import { ArrowLeft, Plus, X, QrCode, Copy, Check, Settings2 } from "lucide-react";
+
+import { ArrowLeft, Plus, X, Link2, Copy, Check, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -139,7 +139,7 @@ export default function AdminSetup() {
           </div>
 
           <Button size="lg" className="w-full" onClick={handleGenerate} disabled={activities.length === 0}>
-            <QrCode className="w-5 h-5 mr-2" /> Gerar QR Code
+            <Link2 className="w-5 h-5 mr-2" /> Gerar Link de Inscrição
           </Button>
         </div>
 
@@ -147,38 +147,41 @@ export default function AdminSetup() {
           {generatedUrl ? (
             <div className="bg-card border border-border rounded-2xl p-6 w-full space-y-5">
               <div>
-                <h2 className="font-display font-bold text-lg mb-1">QR Code Gerado</h2>
+                <h2 className="font-display font-bold text-lg mb-1">Link de Inscrição</h2>
                 <p className="text-sm text-muted-foreground">
                   <span className="font-semibold text-primary">{period}</span> · {activities.length} atividade{activities.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <div className="flex justify-center">
-                <div className="bg-white p-4 rounded-2xl shadow-inner border border-border/50">
-                  <QRCodeSVG value={generatedUrl} size={220} level="H" fgColor="#0f172a" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link de inscrição</p>
+
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Abre este link para registar alunos</p>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-muted rounded-xl px-3 py-2 text-xs font-mono text-muted-foreground truncate">{generatedUrl}</div>
+                  <div className="flex-1 bg-muted rounded-xl px-3 py-3 text-xs font-mono text-muted-foreground break-all leading-relaxed">{generatedUrl}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <button onClick={handleCopy}
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors border border-primary/20">
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? "Copiado" : "Copiar"}
+                    {copied ? "Copiado!" : "Copiar link"}
                   </button>
+                  <a href={generatedUrl} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
+                    <Link2 className="w-4 h-4" /> Abrir link
+                  </a>
                 </div>
               </div>
-              <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground">
-                Professor: <span className="font-semibold text-foreground">{teacher.displayName}</span><br />
-                Atividades: <span className="font-semibold text-foreground">{activities.join(", ")}</span>
+
+              <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
+                <p>Professor: <span className="font-semibold text-foreground">{teacher.displayName}</span></p>
+                <p>Atividades: <span className="font-semibold text-foreground">{activities.join(", ")}</span></p>
               </div>
             </div>
           ) : (
             <div className="bg-card border border-dashed border-border rounded-2xl p-10 w-full flex flex-col items-center justify-center text-center gap-4 min-h-[300px]">
-              <QrCode className="w-16 h-16 text-border" />
+              <Link2 className="w-16 h-16 text-border" />
               <div>
-                <p className="font-semibold text-foreground">QR Code aparece aqui</p>
-                <p className="text-sm text-muted-foreground mt-1">Seleciona o período, as atividades<br />e clica em "Gerar QR Code"</p>
+                <p className="font-semibold text-foreground">O link aparece aqui</p>
+                <p className="text-sm text-muted-foreground mt-1">Seleciona o período, as atividades<br />e clica em "Gerar Link de Inscrição"</p>
               </div>
             </div>
           )}
