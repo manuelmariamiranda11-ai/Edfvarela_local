@@ -1,6 +1,7 @@
 export interface EventConfig {
   period: string;
   activities: string[];
+  activityEscaloes?: Record<string, boolean>;
   teacherId?: string;
   teacherName?: string;
 }
@@ -40,15 +41,15 @@ export const PRESET_ACTIVITY_GROUPS: { group: string; activities: string[] }[] =
 
 export const PRESET_ACTIVITIES = PRESET_ACTIVITY_GROUPS.flatMap((g) => g.activities);
 
-export const ESCALOES = ["Benjamins", "Traquinas", "Infantis", "Iniciados", "Juvenis"];
+export const ESCALOES = ["Infantil B", "Infantil A", "Iniciados", "Juvenis", "Júnior"];
 
 export function computeEscalao(birthYear: number): string {
   const age = new Date().getFullYear() - birthYear;
-  if (age <= 9) return "Benjamins";
-  if (age <= 11) return "Traquinas";
-  if (age <= 13) return "Infantis";
+  if (age <= 11) return "Infantil B";
+  if (age <= 13) return "Infantil A";
   if (age <= 15) return "Iniciados";
-  return "Juvenis";
+  if (age <= 17) return "Juvenis";
+  return "Júnior";
 }
 
 export function encodeEventConfig(config: EventConfig): string {

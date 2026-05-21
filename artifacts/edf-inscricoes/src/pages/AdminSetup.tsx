@@ -15,6 +15,7 @@ export default function AdminSetup() {
   const [, setLocation] = useLocation();
   const [period, setPeriod] = useState(PERIODS[0]);
   const [activities, setActivities] = useState<string[]>([]);
+  const [activityEscaloes, setActivityEscaloes] = useState<Record<string, boolean>>({});
   const [customInput, setCustomInput] = useState("");
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -29,12 +30,23 @@ export default function AdminSetup() {
     const trimmed = name.trim();
     if (!trimmed || activities.includes(trimmed)) return;
     setActivities((prev) => [...prev, trimmed]);
+    setActivityEscaloes((prev) => ({ ...prev, [trimmed]: false }));
     setCustomInput("");
     setGeneratedUrl(null);
   };
 
   const removeActivity = (name: string) => {
     setActivities((prev) => prev.filter((a) => a !== name));
+    setActivityEscaloes((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    setGeneratedUrl(null);
+  };
+
+  const toggleEscalao = (name: string) => {
+    setActivityEscaloes((prev) => ({ ...prev, [name]: !prev[name] }));
     setGeneratedUrl(null);
   };
 
@@ -43,6 +55,7 @@ export default function AdminSetup() {
     const config: EventConfig = {
       period,
       activities,
+      activityEscaloes,
       teacherId: teacher.id,
       teacherName: teacher.displayName,
     };
@@ -131,13 +144,26 @@ export default function AdminSetup() {
 
             {activities.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Selecionadas ({activities.length})</p>
-                <div className="flex flex-wrap gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Selecionadas ({activities.length}) — tem escalão?
+                </p>
+                <div className="space-y-2">
                   {activities.map((act) => (
-                    <span key={act} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
-                      {act}
-                      <button onClick={() => removeActivity(act)} className="hover:text-destructive ml-1"><X className="w-3 h-3" /></button>
-                    </span>
+                    <div key={act} className="flex items-center gap-2 bg-muted/40 rounded-xl px-3 py-2">
+                      <span className="flex-1 text-xs font-semibold text-foreground">{act}</span>
+                      <button
+                        onClick={() => toggleEscalao(act)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border font-bold transition-all ${
+                          activityEscaloes[act]
+                            ? "bg-secondary text-secondary-foreground border-secondary"
+                            : "border-border text-muted-foreground hover:border-secondary/60"
+                        }`}>
+                        {activityEscaloes[act] ? "✓ Tem escalão" : "Sem escalão"}
+                      </button>
+                      <button onClick={() => removeActivity(act)} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -179,7 +205,14 @@ export default function AdminSetup() {
 
               <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
                 <p>Professor: <span className="font-semibold text-foreground">{teacher.displayName}</span></p>
-                <p>Atividades: <span className="font-semibold text-foreground">{activities.join(", ")}</span></p>
+                <div className="space-y-0.5">
+                  {activities.map((act) => (
+                    <p key={act}>
+                      <span className="font-semibold text-foreground">{act}</span>
+                      {activityEscaloes[act] && <span className="ml-1 text-secondary font-bold">(Escalão)</span>}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (

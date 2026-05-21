@@ -17,6 +17,8 @@ export interface Registration {
   gender: "M" | "F";
   selectedActivities: string[];
   activityScores: Record<string, number | null>;
+  activityNA: Record<string, boolean>;
+  activityEscaloes: Record<string, boolean>;
   absent: boolean;
   arbitro: boolean;
   createdAt: string;
@@ -83,9 +85,10 @@ export function isAdminLoggedIn(): boolean {
 
 // ─── Registrations ───────────────────────────────────────────
 function computeAverage(
-  reg: Pick<Registration, "selectedActivities" | "activityScores">
+  reg: Pick<Registration, "selectedActivities" | "activityScores" | "activityNA">
 ): number | null {
   const scores = reg.selectedActivities
+    .filter((name) => !reg.activityNA?.[name])
     .map((name) => reg.activityScores[name] ?? null)
     .filter((v): v is number => v !== null);
   if (scores.length === 0) return null;
@@ -99,6 +102,8 @@ function migrateReg(r: Record<string, unknown>): Registration {
       escalao: (r.escalao as string) ?? computeEscalao(r.birthYear as number),
       gender: (r.gender as "M" | "F") ?? "M",
       arbitro: (r.arbitro as boolean) ?? false,
+      activityNA: (r.activityNA as Record<string, boolean>) ?? {},
+      activityEscaloes: (r.activityEscaloes as Record<string, boolean>) ?? {},
       teacherId: (r.teacherId as string) ?? "legacy",
       teacherName: (r.teacherName as string) ?? "—",
     };
@@ -118,6 +123,8 @@ function migrateReg(r: Record<string, unknown>): Registration {
     gender: (r.gender as "M" | "F") ?? "M",
     selectedActivities: oldSel.map((n) => `Atividade ${n}`),
     activityScores,
+    activityNA: {},
+    activityEscaloes: {},
     absent: (r.absent as boolean) ?? false,
     arbitro: (r.arbitro as boolean) ?? false,
     createdAt: r.createdAt as string,
@@ -154,6 +161,7 @@ export function createRegistration(data: {
   className: string;
   gender: "M" | "F";
   selectedActivities: string[];
+  activityEscaloes?: Record<string, boolean>;
   teacherId: string;
   teacherName: string;
 }): Registration {
@@ -171,6 +179,8 @@ export function createRegistration(data: {
     gender: data.gender,
     selectedActivities: data.selectedActivities,
     activityScores,
+    activityNA: {},
+    activityEscaloes: data.activityEscaloes ?? {},
     absent: false,
     arbitro: false,
     createdAt: new Date().toISOString(),
@@ -180,6 +190,41 @@ export function createRegistration(data: {
   };
   save([...all, reg]);
   return reg;
+}
+
+export function importRegistrations(rows: {
+  name: string;
+  birthYear: number;
+  schoolYear: string;
+  className: string;
+  gender: "M" | "F";
+}[], teacherId: string, teacherName: string): number {
+  const all = getAllRegistrations();
+  let nextId = all.length > 0 ? Math.max(...all.map((r) => r.id)) + 1 : 1;
+  const newRegs: Registration[] = rows.map((row) => {
+    const reg: Registration = {
+      id: nextId++,
+      name: row.name,
+      birthYear: row.birthYear,
+      escalao: computeEscalao(row.birthYear),
+      schoolYear: row.schoolYear,
+      className: row.className,
+      gender: row.gender,
+      selectedActivities: [],
+      activityScores: {},
+      activityNA: {},
+      activityEscaloes: {},
+      absent: false,
+      arbitro: false,
+      createdAt: new Date().toISOString(),
+      average: null,
+      teacherId,
+      teacherName,
+    };
+    return reg;
+  });
+  save([...all, ...newRegs]);
+  return newRegs.length;
 }
 
 export function toggleArbitro(id: number, arbitro: boolean): Registration | null {
@@ -197,12 +242,17 @@ export function deleteRegistration(id: number): void {
 
 export function updateScores(
   id: number,
-  activityScores: Record<string, number | null>
+  activityScores: Record<string, number | null>,
+  activityNA?: Record<string, boolean>
 ): Registration | null {
   const all = getAllRegistrations();
   const idx = all.findIndex((r) => r.id === id);
   if (idx === -1) return null;
-  const updated: Registration = { ...all[idx], activityScores };
+  const updated: Registration = {
+    ...all[idx],
+    activityScores,
+    activityNA: activityNA ?? all[idx].activityNA ?? {},
+  };
   updated.average = computeAverage(updated);
   all[idx] = updated;
   save(all);
