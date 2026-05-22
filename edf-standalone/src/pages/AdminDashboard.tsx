@@ -106,7 +106,7 @@ export default function AdminDashboard() {
           const schoolYear = String(row["Ano Escolar"] ?? row["AnoEscolar"] ?? row["schoolYear"] ?? row["Ano"] ?? "").trim();
           const className = String(row["Turma"] ?? row["className"] ?? row["turma"] ?? "").trim();
           const genderRaw = String(row["Género"] ?? row["Genero"] ?? row["gender"] ?? row["Gender"] ?? "M").trim().toUpperCase();
-          const gender: "M" | "F" = genderRaw === "F" ? "F" : "M";
+          const gender: "M" | "F" = (genderRaw === "F" || genderRaw === "FEMININO" || genderRaw === "FEM") ? "F" : "M";
           if (!name || !birthYear) continue;
           parsed.push({ name, birthYear, schoolYear, className, gender });
         }
