@@ -247,7 +247,8 @@ export function deleteRegistration(id: number): void {
 export function updateScores(
   id: number,
   activityScores: Record<string, number | null>,
-  activityNA?: Record<string, boolean>
+  activityNA?: Record<string, boolean>,
+  selectedActivities?: string[]
 ): Registration | null {
   const all = getAllRegistrations();
   const idx = all.findIndex((r) => r.id === id);
@@ -256,6 +257,7 @@ export function updateScores(
     ...all[idx],
     activityScores,
     activityNA: activityNA ?? all[idx].activityNA ?? {},
+    selectedActivities: selectedActivities ?? all[idx].selectedActivities,
   };
   updated.average = computeAverage(updated);
   all[idx] = updated;

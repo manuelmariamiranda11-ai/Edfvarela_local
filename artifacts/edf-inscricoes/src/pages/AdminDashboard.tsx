@@ -346,6 +346,7 @@ export default function AdminDashboard() {
 function RegistrationRow({ registration, allActivities, onSaved }: {
   registration: Registration; allActivities: string[]; onSaved: () => void;
 }) {
+  const [selectedActs, setSelectedActs] = useState<string[]>(() => registration.selectedActivities);
   const [scores, setScores] = useState<Record<string, number | "">>(() => {
     const s: Record<string, number | ""> = {};
     allActivities.forEach((act) => { s[act] = registration.activityScores[act] ?? ""; });
@@ -378,7 +379,7 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
   const handleSave = () => {
     const updated: Record<string, number | null> = {};
     allActivities.forEach((act) => { updated[act] = scores[act] !== "" ? Number(scores[act]) : null; });
-    updateScores(registration.id, updated, naMap);
+    updateScores(registration.id, updated, naMap, selectedActs);
     setIsDirty(false);
     onSaved();
   };
@@ -390,13 +391,20 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
   };
 
   const calcLocalAverage = () => {
-    const values = registration.selectedActivities
+    const values = selectedActs
       .filter((act) => !naMap[act])
       .map((act) => scores[act])
       .map((v) => (v !== "" && v !== undefined ? Number(v) : null))
       .filter((v): v is number => v !== null);
     if (values.length === 0) return "--";
     return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+  };
+
+  const toggleActivity = (act: string) => {
+    setSelectedActs((prev) =>
+      prev.includes(act) ? prev.filter((a) => a !== act) : [...prev, act]
+    );
+    setIsDirty(true);
   };
 
   const genderColor = registration.gender === "M" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700";
@@ -423,12 +431,16 @@ function RegistrationRow({ registration, allActivities, onSaved }: {
         </span>
       </td>
       {allActivities.map((act) => {
-        const isSelected = registration.selectedActivities.includes(act);
+        const isSelected = selectedActs.includes(act);
         const isNA = naMap[act];
         return (
           <td key={act} className="px-2 py-3">
             {!isSelected ? (
-              <div className="w-20 h-9 mx-auto flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground/40 text-xs font-semibold">N/A</div>
+              <button
+                onClick={() => toggleActivity(act)}
+                title="Clica para adicionar esta atividade"
+                className="w-20 h-9 mx-auto flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground/40 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer border border-dashed border-transparent hover:border-primary/30"
+              >N/A</button>
             ) : isArbitro ? (
               <div className="flex flex-col items-center gap-1">
                 {isNA ? (
