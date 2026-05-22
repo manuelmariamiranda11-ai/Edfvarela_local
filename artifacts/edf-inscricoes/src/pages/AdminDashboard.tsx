@@ -103,8 +103,14 @@ export default function AdminDashboard() {
         for (const row of rows) {
           const name = String(row["Nome"] ?? row["name"] ?? "").trim();
           const birthYear = Number(row["Ano Nasc."] ?? row["AnoNasc"] ?? row["birthYear"] ?? row["Nascimento"] ?? 0);
-          const schoolYear = String(row["Ano Escolar"] ?? row["AnoEscolar"] ?? row["schoolYear"] ?? row["Ano"] ?? "").trim();
-          const className = String(row["Turma"] ?? row["className"] ?? row["turma"] ?? "").trim();
+          const anoTurmaRaw = String(row["Ano/Turma"] ?? row["AnoTurma"] ?? "").trim();
+          let schoolYear = String(row["Ano Escolar"] ?? row["AnoEscolar"] ?? row["schoolYear"] ?? row["Ano"] ?? "").trim();
+          let className = String(row["Turma"] ?? row["className"] ?? row["turma"] ?? "").trim();
+          if (anoTurmaRaw && (!schoolYear || !className)) {
+            const parts = anoTurmaRaw.split(/\s+/);
+            className = parts.length > 1 ? parts[parts.length - 1] : "";
+            schoolYear = parts.length > 1 ? parts.slice(0, -1).join(" ") : anoTurmaRaw;
+          }
           const genderRaw = String(row["Género"] ?? row["Genero"] ?? row["gender"] ?? row["Gender"] ?? "M").trim().toUpperCase();
           const gender: "M" | "F" = (genderRaw === "F" || genderRaw === "FEMININO" || genderRaw === "FEM") ? "F" : "M";
           if (!name || !birthYear) continue;
