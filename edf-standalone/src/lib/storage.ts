@@ -198,10 +198,14 @@ export function importRegistrations(rows: {
   schoolYear: string;
   className: string;
   gender: "M" | "F";
+  selectedActivities?: string[];
+  activityScores?: Record<string, number | null>;
 }[], teacherId: string, teacherName: string): number {
   const all = getAllRegistrations();
   let nextId = all.length > 0 ? Math.max(...all.map((r) => r.id)) + 1 : 1;
   const newRegs: Registration[] = rows.map((row) => {
+    const selectedActivities = row.selectedActivities ?? [];
+    const activityScores = row.activityScores ?? {};
     const reg: Registration = {
       id: nextId++,
       name: row.name,
@@ -210,14 +214,14 @@ export function importRegistrations(rows: {
       schoolYear: row.schoolYear,
       className: row.className,
       gender: row.gender,
-      selectedActivities: [],
-      activityScores: {},
+      selectedActivities,
+      activityScores,
       activityNA: {},
       activityEscaloes: {},
       absent: false,
       arbitro: false,
       createdAt: new Date().toISOString(),
-      average: null,
+      average: computeAverage({ selectedActivities, activityScores, activityNA: {} }),
       teacherId,
       teacherName,
     };

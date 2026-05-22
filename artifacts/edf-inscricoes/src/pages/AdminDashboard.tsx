@@ -99,7 +99,21 @@ export default function AdminDashboard() {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
 
-        const parsed: { name: string; birthYear: number; schoolYear: string; className: string; gender: "M" | "F" }[] = [];
+        const KNOWN_COLS = new Set([
+          "Nome","name","Escalão","Escalao","escalao",
+          "Género","Genero","gender","Gender",
+          "Ano Nasc.","AnoNasc","birthYear","Nascimento",
+          "Ano/Turma","AnoTurma","Ano Escolar","AnoEscolar","schoolYear","Ano",
+          "Turma","className","turma",
+          "Atividades","atividades","Média","Media","average",
+        ]);
+        const allHeaders = rows.length > 0 ? Object.keys(rows[0]) : [];
+        const activityCols = allHeaders.filter((h) => !KNOWN_COLS.has(h));
+
+        const parsed: {
+          name: string; birthYear: number; schoolYear: string; className: string; gender: "M" | "F";
+          selectedActivities: string[]; activityScores: Record<string, number | null>;
+        }[] = [];
         for (const row of rows) {
           const name = String(row["Nome"] ?? row["name"] ?? "").trim();
           const birthYear = Number(row["Ano Nasc."] ?? row["AnoNasc"] ?? row["birthYear"] ?? row["Nascimento"] ?? 0);
@@ -114,7 +128,18 @@ export default function AdminDashboard() {
           const genderRaw = String(row["Género"] ?? row["Genero"] ?? row["gender"] ?? row["Gender"] ?? "M").trim().toUpperCase();
           const gender: "M" | "F" = (genderRaw === "F" || genderRaw === "FEMININO" || genderRaw === "FEM") ? "F" : "M";
           if (!name || !birthYear) continue;
-          parsed.push({ name, birthYear, schoolYear, className, gender });
+
+          const selectedActivities: string[] = [];
+          const activityScores: Record<string, number | null> = {};
+          for (const act of activityCols) {
+            const raw = String(row[act] ?? "").trim();
+            if (raw === "N/A" || raw === "Árbitro N/A") continue;
+            selectedActivities.push(act);
+            const num = Number(raw);
+            activityScores[act] = raw !== "" && !isNaN(num) ? num : null;
+          }
+
+          parsed.push({ name, birthYear, schoolYear, className, gender, selectedActivities, activityScores });
         }
 
         if (parsed.length === 0) {
