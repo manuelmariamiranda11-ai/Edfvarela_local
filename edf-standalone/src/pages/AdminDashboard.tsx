@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [filterEscalao, setFilterEscalao] = useState("Todos");
   const [filterGender, setFilterGender] = useState("Todos");
   const [filterTurma, setFilterTurma] = useState("Todas");
+  const [filterActivity, setFilterActivity] = useState("Todas");
   const [importFeedback, setImportFeedback] = useState<string | null>(null);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -52,7 +53,8 @@ export default function AdminDashboard() {
       const matchEscalao = filterEscalao === "Todos" || r.escalao === filterEscalao;
       const matchGender = filterGender === "Todos" || r.gender === filterGender;
       const matchTurma = filterTurma === "Todas" || turmaLabel === filterTurma;
-      return matchSearch && matchEscalao && matchGender && matchTurma;
+      const matchActivity = filterActivity === "Todas" || r.selectedActivities.includes(filterActivity);
+      return matchSearch && matchEscalao && matchGender && matchTurma && matchActivity;
     })
     .sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
@@ -294,6 +296,18 @@ export default function AdminDashboard() {
                   className={`text-xs px-3 py-1 rounded-full font-semibold border transition-all ${
                     filterTurma === t ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"
                   }`}>{t}</button>
+              ))}
+            </div>
+          )}
+
+          {allActivities.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Atividade:</span>
+              {["Todas", ...allActivities].map((a) => (
+                <button key={a} onClick={() => setFilterActivity(a)}
+                  className={`text-xs px-3 py-1 rounded-full font-semibold border transition-all ${
+                    filterActivity === a ? "bg-secondary text-secondary-foreground border-secondary" : "border-border text-muted-foreground hover:border-secondary/50"
+                  }`}>{a}</button>
               ))}
             </div>
           )}
