@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   type Registration, getRegistrations, deleteRegistration,
   updateScores, toggleAbsent, toggleArbitro, isAdminLoggedIn, adminLogout,
-  getCurrentTeacher, deleteTeacher, importRegistrations,
+  getCurrentTeacher, deleteTeacher, importRegistrations, getEventConfig,
 } from "@/lib/storage";
 import { ESCALOES } from "@/lib/event-config";
 
@@ -63,7 +63,9 @@ export default function AdminDashboard() {
       return a.className.localeCompare(b.className) || a.name.localeCompare(b.name);
     });
 
-  const allActivities = Array.from(new Set(registrations.flatMap((r) => r.selectedActivities))).sort();
+  const eventConfig = teacher ? getEventConfig(teacher.id) : null;
+  const configActivities = eventConfig?.activities ?? [];
+  const allActivities = Array.from(new Set([...configActivities, ...registrations.flatMap((r) => r.selectedActivities)])).sort();
 
   const activityEscalaoMap: Record<string, boolean> = {};
   allActivities.forEach((act) => {

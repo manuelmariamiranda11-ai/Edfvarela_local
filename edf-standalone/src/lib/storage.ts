@@ -30,6 +30,7 @@ export interface Registration {
 const TEACHERS_KEY = "edf_teachers";
 const REGISTRATIONS_KEY = "edf_registrations";
 const SESSION_KEY = "edf_session_teacher";
+const EVENT_CONFIG_KEY = "edf_event_config";
 
 // ─── Teachers ────────────────────────────────────────────────
 export function getTeachers(): Teacher[] {
@@ -81,6 +82,27 @@ export function getCurrentTeacher(): Teacher | null {
 
 export function isAdminLoggedIn(): boolean {
   return !!getCurrentTeacher();
+}
+
+// ─── Event Config ─────────────────────────────────────────────
+import type { EventConfig } from "./event-config";
+
+export function saveEventConfig(teacherId: string, config: EventConfig): void {
+  try {
+    const raw = localStorage.getItem(EVENT_CONFIG_KEY);
+    const all: Record<string, EventConfig> = raw ? JSON.parse(raw) : {};
+    all[teacherId] = config;
+    localStorage.setItem(EVENT_CONFIG_KEY, JSON.stringify(all));
+  } catch { /* ignore */ }
+}
+
+export function getEventConfig(teacherId: string): EventConfig | null {
+  try {
+    const raw = localStorage.getItem(EVENT_CONFIG_KEY);
+    if (!raw) return null;
+    const all: Record<string, EventConfig> = JSON.parse(raw);
+    return all[teacherId] ?? null;
+  } catch { return null; }
 }
 
 // ─── Registrations ───────────────────────────────────────────

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { isAdminLoggedIn, getCurrentTeacher } from "@/lib/storage";
+import { isAdminLoggedIn, getCurrentTeacher, saveEventConfig } from "@/lib/storage";
 import {
   PERIODS, PRESET_ACTIVITY_GROUPS, encodeEventConfig, type EventConfig,
 } from "@/lib/event-config";
@@ -62,6 +62,7 @@ export default function AdminSetup() {
     const encoded = encodeEventConfig(config);
     const base = window.location.origin + (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
     setGeneratedUrl(`${base}/register?ev=${encoded}`);
+    saveEventConfig(teacher.id, config);
   };
 
   const handleCopy = () => {
